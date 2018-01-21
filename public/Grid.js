@@ -4,15 +4,16 @@
  * A Grid is the model of the playfield containing hexes
  * @constructor
  */
-HT.Grid = function(/*double*/ width, /*double*/ height, /*integer*/ relataiveX, /*integer*/ relativeY) {
+HT.Grid = function(/*double*/ width, /*double*/ height, /*integer*/ relataiveX, /*integer*/ relativeY, /*Array of Hexes*/map) {
 	
 	this.Hexes = [];
+	this.map = map;
 	//setup a dictionary for use later for assigning the X or Y CoOrd (depending on Orientation)
 	var HexagonsByXOrYCoOrd = {}; //Dictionary<int, List<Hexagon>>
 
 	var row = relataiveX;
 	var y = 0.0;
-	while (y + HT.Hexagon.Static.HEIGHT <= height && row < 100)
+	while (row < height)
 	{
 		var col = relativeY;
 
@@ -27,10 +28,10 @@ HT.Grid = function(/*double*/ width, /*double*/ height, /*integer*/ relataiveX, 
 		}
 		
 		var x = offset;
-		while (x + HT.Hexagon.Static.WIDTH <= width && col < 100)
+		while (col < width)
 		{
 		    var hexId = this.GetHexId(row, col);
-			var h = new HT.Hexagon(hexId, x, y);
+			var h = new HT.Hexagon(hexId, x, y, this.GetMapTile(col,row));
 			
 			var pathCoOrd = col;
 			if(HT.Hexagon.Static.ORIENTATION == HT.Hexagon.Orientation.Normal)
@@ -125,3 +126,12 @@ HT.Grid.prototype.GetHexById = function(id) {
 	}
 	return null;
 };
+
+HT.Grid.prototype.GetMapTile = function(x, y){
+	for(var i in this.map){
+		if(this.map[i].x === x && this.map[i].y === y){
+			return this.map[i];
+		}
+	}
+	return null;
+}

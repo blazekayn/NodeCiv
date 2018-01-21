@@ -3,18 +3,6 @@ var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 
-//Setup the grid the game will be played on
-function GetHexById(id) {
-  for(var i in grid.hexes)
-  {
-    if(grid.hexes[i].Id == id)
-    {
-      return grid.hexes[i];
-    }
-  }
-  return null;
-}
-
 app.use(express.static('public'));
 
 app.get('/', function(req, res){
@@ -25,8 +13,43 @@ http.listen(80, '0.0.0.0', function(){
 	console.log('listening on *:80');
 });
 
+//Tile Stuff
+var tiles = [];
+for (var x = 0; x < 100; x++){
+  for(var y = 0; y < 100; y++){
+    var tile = {}
+    tile.x = x;
+    tile.y = y;
+    tile.tileType = (Math.floor((Math.random() * 5) + 1) > 1 ? "land" : "water");
+    tile.selected = false;
+    tile.color = (tile.tileType === 'land' ? 'green' : 'lightBlue');
+    tiles.push(tile);
+  }
+}
 
-var colors = ['red', 'yellow', 'pink', 'blue'];
+console.log(tiles);
+
+//Returns a siingle tile at x,y
+function getTile(x,y){
+  for(var i = 0; i < tiles.length; i++){
+    if(tiles[i].x === x && tiles[i].y === y){
+      return tiles[i];
+    }
+  }
+}
+
+//Returns the area around x,y (ie x,y to x+9,y+6)
+function getTileArea(x,y){
+  tArea = [];
+  for(var i = 0; i < 10; i++){
+    for(var j = 0; j < 7; j++){
+      tArea.push(getTile(x+i, y+j));
+    }
+  }
+  return tArea;
+}
+
+var colors = ['red', 'yellow', 'pink', 'blue', 'darkGreen', 'gary'];
 var users = [];
 
 io.on('connection', function(socket){
@@ -34,8 +57,9 @@ io.on('connection', function(socket){
 	console.log('a user connected');
   //Create an object to keep track of the new user
   var user = {};
-  user.color = colors[users.length];
+  user.color = colors[users.length%6];
   user.id = users.length;
+  user.mapData = getTileArea(0,0);
   users.push(user);
   //Tell the new user what their color and stuff is
   socket.emit('userInfo', user);
@@ -53,7 +77,16 @@ io.on('connection', function(socket){
   /************USER EVENTS**************************/
 
   socket.on('canvasClick', function(data){
-    console.log(data);
+    var tile = getTile(data.x, data.y);
+    console.log(user);
+    console.log(tile);
+    tile.selected = !tile.selected;
+    if(tile.selected){
+      tile.color = user.color;
+    }else{
+      tile.color = (tile.tileType === 'land' ? 'green' : 'lightBlue');
+    }
+    io.emit('userClick', getTileArea(0,0));
   });
   /*************END USER EVENTS*********************/
 

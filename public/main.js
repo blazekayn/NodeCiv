@@ -3,23 +3,20 @@ var canvasH = 0;
 var canvas;
 var currentX = 0;
 var currentY = 0;
-var grid;
 var socket = io();
 var users = [];
 var me = {};
+var map = [];
+var grid = {};
 
 $(document).ready(function(){
 	canvas = document.getElementById("canvasMain");
 	resizeCanvas();
-	drawHexGrid();
 
 	$("#btnGo").on('click', function(){
 		//Move our view
 		currentX = parseInt($("#txtXCoord").val());
 		currentY = parseInt($("#txtYCoord").val());
-		//redraw the grid
-		grid = new HT.Grid(canvasW * 100, canvasH * 100, currentX, currentY);
-		drawHexGrid();
 	});
 
 	canvas.addEventListener("mousedown", getMouseClick, false);
@@ -27,7 +24,12 @@ $(document).ready(function(){
 	//Sent when connected to the server this is your user data
 	socket.on('userInfo', function(u){
 		me = u;
+		map = u.mapData;
       	console.log(u);
+      	console.log(map);
+
+      	grid = new HT.Grid(10,7, 0, 0, map);
+      	drawHexGrid();
     });
 
 	//Sent when first connecting is a list of current users in the game
@@ -41,12 +43,16 @@ $(document).ready(function(){
 		users.push(u);
     });
 
+	socket.on('userClick', function(data){
+		map = data;
+		grid = new HT.Grid(10,7, 0, 0, map);
+		drawHexGrid();
+	});
 
 });
 
 $(window).resize(function(){
 	resizeCanvas();
-	drawHexGrid();
 });
 
 function resizeCanvas(){
@@ -54,7 +60,7 @@ function resizeCanvas(){
     canvas.height = document.body.clientHeight; //document.height is obsolete
     canvasW = canvas.width;
     canvasH = canvas.height;
-	grid = new HT.Grid(canvasW * 100, canvasH * 100, currentX, currentY);
+    drawHexGrid();
 }
 
 function drawHexGrid(){
@@ -71,10 +77,9 @@ function getMouseClick(event)
 	var x = event.x;
 	var y = event.y;
 
-
-	var clickedHex = grid.GetHexAt(new HT.Point(x,y));
+	var clickedHex = grid.GetHexAt(new HT.Point(x, y));
 	clickedHex.selected = !clickedHex.selected;
-	socket.emit('canvasClick', clickedHex.Id);
-
 	drawHexGrid();
+
+	socket.emit('canvasClick', {x:clickedHex.Id.col, y:clickedHex.Id.row});
 }

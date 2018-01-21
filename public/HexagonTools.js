@@ -33,8 +33,9 @@ HT.Line = function(x1, y1, x2, y2) {
 /**
  * A Hexagon is a 6 sided polygon, our hexes don't have to be symmetrical, i.e. ratio of width to height could be 4 to 3
  * @constructor
+ * mapTile contains information about this tile passed from the server
  */
-HT.Hexagon = function(id, x, y) {
+HT.Hexagon = function(id, x, y, mapTile) {
 	this.Points = [];//Polygon Base
 	var x1 = null;
 	var y1 = null;
@@ -61,9 +62,9 @@ HT.Hexagon = function(id, x, y) {
 	
 	this.P1 = new HT.Point(x + x1, y + y1);
 	
-	this.selected = false;
-
-	this.selectedBy = {};
+	this.selected = mapTile.selected;
+	this.tileType = mapTile.tileType;
+	this.color = mapTile.color;
 };
 	
 /**
@@ -72,10 +73,8 @@ HT.Hexagon = function(id, x, y) {
  */
 HT.Hexagon.prototype.draw = function(ctx) {
 
-	if(!this.selected)
-		ctx.fillStyle = "lightGray";
-	else
-		ctx.fillStyle = me.color;
+	ctx.fillStyle = this.color;
+
 	ctx.lineWidth = 1;
 	ctx.beginPath();
 	ctx.moveTo(this.Points[0].X, this.Points[0].Y);
@@ -109,29 +108,29 @@ HT.Hexagon.prototype.draw = function(ctx) {
 	// 	ctx.fillText("("+this.PathCoOrdX+","+this.PathCoOrdY+")", this.MidPoint.X, this.MidPoint.Y + 10);
 	// }
 	
-	if(HT.Hexagon.Static.DRAWSTATS)
-	{
-		ctx.strokeStyle = "black";
-		ctx.lineWidth = 2;
-		//draw our x1, y1, and z
-		ctx.beginPath();
-		ctx.moveTo(this.P1.X, this.y);
-		ctx.lineTo(this.P1.X, this.P1.Y);
-		ctx.lineTo(this.x, this.P1.Y);
-		ctx.closePath();
-		ctx.stroke();
+	// if(HT.Hexagon.Static.DRAWSTATS)
+	// {
+	// 	ctx.strokeStyle = "black";
+	// 	ctx.lineWidth = 2;
+	// 	//draw our x1, y1, and z
+	// 	ctx.beginPath();
+	// 	ctx.moveTo(this.P1.X, this.y);
+	// 	ctx.lineTo(this.P1.X, this.P1.Y);
+	// 	ctx.lineTo(this.x, this.P1.Y);
+	// 	ctx.closePath();
+	// 	ctx.stroke();
 		
-		ctx.fillStyle = "black"
-		ctx.font = "bolder 8pt Trebuchet MS,Tahoma,Verdana,Arial,sans-serif";
-		ctx.textAlign = "left";
-		ctx.textBaseline = 'middle';
-		//var textWidth = ctx.measureText(this.Planet.BoundingHex.Id);
-		ctx.fillText("z", this.x + this.x1/2 - 8, this.y + this.y1/2);
-		ctx.fillText("x", this.x + this.x1/2, this.P1.Y + 10);
-		ctx.fillText("y", this.P1.X + 2, this.y + this.y1/2);
-		ctx.fillText("z = " + HT.Hexagon.Static.SIDE, this.P1.X, this.P1.Y + this.y1 + 10);
-		ctx.fillText("(" + this.x1.toFixed(2) + "," + this.y1.toFixed(2) + ")", this.P1.X, this.P1.Y + 10);
-	}
+	// 	ctx.fillStyle = "black"
+	// 	ctx.font = "bolder 8pt Trebuchet MS,Tahoma,Verdana,Arial,sans-serif";
+	// 	ctx.textAlign = "left";
+	// 	ctx.textBaseline = 'middle';
+	// 	//var textWidth = ctx.measureText(this.Planet.BoundingHex.Id);
+	// 	ctx.fillText("z", this.x + this.x1/2 - 8, this.y + this.y1/2);
+	// 	ctx.fillText("x", this.x + this.x1/2, this.P1.Y + 10);
+	// 	ctx.fillText("y", this.P1.X + 2, this.y + this.y1/2);
+	// 	ctx.fillText("z = " + HT.Hexagon.Static.SIDE, this.P1.X, this.P1.Y + this.y1 + 10);
+	// 	ctx.fillText("(" + this.x1.toFixed(2) + "," + this.y1.toFixed(2) + ")", this.P1.X, this.P1.Y + 10);
+	// }
 };
 
 /**
