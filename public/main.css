@@ -22,3 +22,40 @@ body{
 	width: 50px;
 	margin: 2px;
 }
+
+#divMoveUp{
+	position: absolute;
+	z-index: 1000;
+	top: 10px;
+	left: 50%;
+	background-color: goldenrod;
+	text-align: center;
+	padding:3px;
+}
+#divMoveDown{
+	position: absolute;
+	z-index: 1000;
+	bottom: 10px;
+	left: 50%;
+	background-color: goldenrod;
+	text-align: center;
+	padding:3px;
+}
+#divMoveLeft{
+	position: absolute;
+	z-index: 1000;
+	top: 50%;
+	left: 10px;
+	background-color: goldenrod;
+	text-align: center;
+	padding:3px;
+}
+#divMoveRight{
+	position: absolute;
+	z-index: 1000;
+	top: 50%;
+	right: 10px;
+	background-color: goldenrod;
+	text-align: center;
+	padding:3px;
+}

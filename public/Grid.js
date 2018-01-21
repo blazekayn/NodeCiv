@@ -13,7 +13,7 @@ HT.Grid = function(/*double*/ width, /*double*/ height, /*integer*/ relataiveX, 
 
 	var row = relataiveX;
 	var y = 0.0;
-	while (row < height)
+	while (row < height + relataiveX)
 	{
 		var col = relativeY;
 
@@ -28,7 +28,7 @@ HT.Grid = function(/*double*/ width, /*double*/ height, /*integer*/ relataiveX, 
 		}
 		
 		var x = offset;
-		while (col < width)
+		while (col < width + relativeY)
 		{
 		    var hexId = this.GetHexId(row, col);
 			var h = new HT.Hexagon(hexId, x, y, this.GetMapTile(col,row));

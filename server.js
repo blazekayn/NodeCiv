@@ -27,8 +27,6 @@ for (var x = 0; x < 100; x++){
   }
 }
 
-console.log(tiles);
-
 //Returns a siingle tile at x,y
 function getTile(x,y){
   for(var i = 0; i < tiles.length; i++){
@@ -66,11 +64,9 @@ io.on('connection', function(socket){
 
   //Tell all the current users there is a new user to keep track of
   socket.broadcast.emit('newUser', user);
-
+  console.log('New user color ' + user.color);
   //Tell the new user what users are already in the game
   socket.emit('existingUsers', users);
-
-  console.log(users);
 
   /*******END NEW USER CONNECTED********************/
 
@@ -78,8 +74,6 @@ io.on('connection', function(socket){
 
   socket.on('canvasClick', function(data){
     var tile = getTile(data.x, data.y);
-    console.log(user);
-    console.log(tile);
     tile.selected = !tile.selected;
     if(tile.selected){
       tile.color = user.color;
@@ -87,6 +81,15 @@ io.on('connection', function(socket){
       tile.color = (tile.tileType === 'land' ? 'green' : 'lightBlue');
     }
     io.emit('userClick', getTileArea(0,0));
+    console.log('user ' + user.color + ' ' + (tile.selected ? '' : 'de') + 'selected tile (' + data.x + ',' + data.y + ')');
+  });
+
+  socket.on('moveView', function(data){
+    var map = {};
+    map.map = getTileArea(data.x,data.y);
+    map.x = data.x;
+    map.y = data.y;
+    socket.emit('newView', map);
   });
   /*************END USER EVENTS*********************/
 
