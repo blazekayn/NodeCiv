@@ -10,11 +10,11 @@ HT.Grid = function(/*double*/ width, /*double*/ height, /*integer*/ relataiveX, 
 	//setup a dictionary for use later for assigning the X or Y CoOrd (depending on Orientation)
 	var HexagonsByXOrYCoOrd = {}; //Dictionary<int, List<Hexagon>>
 
-	var row = 0;
+	var row = relataiveX;
 	var y = 0.0;
-	while (y + HT.Hexagon.Static.HEIGHT <= height)
+	while (y + HT.Hexagon.Static.HEIGHT <= height && row < 100)
 	{
-		var col = 0;
+		var col = relativeY;
 
 		var offset = 0.0;
 		if (row % 2 == 1)
@@ -23,21 +23,21 @@ HT.Grid = function(/*double*/ width, /*double*/ height, /*integer*/ relataiveX, 
 				offset = (HT.Hexagon.Static.WIDTH - HT.Hexagon.Static.SIDE)/2 + HT.Hexagon.Static.SIDE;
 			else
 				offset = HT.Hexagon.Static.WIDTH / 2;
-			col = 1;
+			col = relativeY;
 		}
 		
 		var x = offset;
-		while (x + HT.Hexagon.Static.WIDTH <= width)
+		while (x + HT.Hexagon.Static.WIDTH <= width && col < 100)
 		{
 		    var hexId = this.GetHexId(row, col);
 			var h = new HT.Hexagon(hexId, x, y);
 			
 			var pathCoOrd = col;
 			if(HT.Hexagon.Static.ORIENTATION == HT.Hexagon.Orientation.Normal)
-				h.PathCoOrdX = col + relataiveX;//the column is the x coordinate of the hex, for the y coordinate we need to get more fancy
+				h.PathCoOrdX = col;//the column is the x coordinate of the hex, for the y coordinate we need to get more fancy
 			else {
-				h.PathCoOrdY = row + relativeY;
-				pathCoOrd = row + relativeY;;
+				h.PathCoOrdY = row;
+				pathCoOrd = row;
 			}
 			
 			this.Hexes.push(h);
@@ -46,7 +46,7 @@ HT.Grid = function(/*double*/ width, /*double*/ height, /*integer*/ relataiveX, 
 				HexagonsByXOrYCoOrd[pathCoOrd] = [];
 			HexagonsByXOrYCoOrd[pathCoOrd].push(h);
 
-			col+=2;
+			col+=1;
 			if(HT.Hexagon.Static.ORIENTATION == HT.Hexagon.Orientation.Normal)
 				x += HT.Hexagon.Static.WIDTH + HT.Hexagon.Static.SIDE;
 			else
@@ -70,23 +70,13 @@ HT.Grid = function(/*double*/ width, /*double*/ height, /*integer*/ relataiveX, 
 			if(HT.Hexagon.Static.ORIENTATION == HT.Hexagon.Orientation.Normal)
 				h.PathCoOrdY = coOrd2++;
 			else
-				h.PathCoOrdX = (coOrd2++) + relataiveX;
+				h.PathCoOrdX = (coOrd2++);
 		}
 	}
 };
 
-HT.Grid.Static = {Letters:'ABCDEFGHIJKLMNOPQRSTUVWXYZ'};
-
 HT.Grid.prototype.GetHexId = function(row, col) {
-	var letterIndex = row;
-	var letters = "";
-	while(letterIndex > 25)
-	{
-		letters = HT.Grid.Static.Letters[letterIndex%26] + letters;
-		letterIndex -= 26;
-	}
-		
-	return HT.Grid.Static.Letters[letterIndex] + letters + (col + 1);
+	return {row:row, col:col};
 };
 
 /**

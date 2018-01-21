@@ -38,27 +38,16 @@ HT.Hexagon = function(id, x, y) {
 	this.Points = [];//Polygon Base
 	var x1 = null;
 	var y1 = null;
-	if(HT.Hexagon.Static.ORIENTATION == HT.Hexagon.Orientation.Normal) {
-		x1 = (HT.Hexagon.Static.WIDTH - HT.Hexagon.Static.SIDE)/2;
-		y1 = (HT.Hexagon.Static.HEIGHT / 2);
-		this.Points.push(new HT.Point(x1 + x, y));
-		this.Points.push(new HT.Point(x1 + HT.Hexagon.Static.SIDE + x, y));
-		this.Points.push(new HT.Point(HT.Hexagon.Static.WIDTH + x, y1 + y));
-		this.Points.push(new HT.Point(x1 + HT.Hexagon.Static.SIDE + x, HT.Hexagon.Static.HEIGHT + y));
-		this.Points.push(new HT.Point(x1 + x, HT.Hexagon.Static.HEIGHT + y));
-		this.Points.push(new HT.Point(x, y1 + y));
-	}
-	else {
-		x1 = (HT.Hexagon.Static.WIDTH / 2);
-		y1 = (HT.Hexagon.Static.HEIGHT - HT.Hexagon.Static.SIDE)/2;
-		this.Points.push(new HT.Point(x1 + x, y));
-		this.Points.push(new HT.Point(HT.Hexagon.Static.WIDTH + x, y1 + y));
-		this.Points.push(new HT.Point(HT.Hexagon.Static.WIDTH + x, y1 + HT.Hexagon.Static.SIDE + y));
-		this.Points.push(new HT.Point(x1 + x, HT.Hexagon.Static.HEIGHT + y));
-		this.Points.push(new HT.Point(x, y1 + HT.Hexagon.Static.SIDE + y));
-		this.Points.push(new HT.Point(x, y1 + y));
-	}
-	
+
+	x1 = (HT.Hexagon.Static.WIDTH / 2);
+	y1 = (HT.Hexagon.Static.HEIGHT - HT.Hexagon.Static.SIDE)/2;
+	this.Points.push(new HT.Point(x1 + x, y));
+	this.Points.push(new HT.Point(HT.Hexagon.Static.WIDTH + x, y1 + y));
+	this.Points.push(new HT.Point(HT.Hexagon.Static.WIDTH + x, y1 + HT.Hexagon.Static.SIDE + y));
+	this.Points.push(new HT.Point(x1 + x, HT.Hexagon.Static.HEIGHT + y));
+	this.Points.push(new HT.Point(x, y1 + HT.Hexagon.Static.SIDE + y));
+	this.Points.push(new HT.Point(x, y1 + y));
+		
 	this.Id = id;
 	
 	this.x = x;
@@ -106,19 +95,19 @@ HT.Hexagon.prototype.draw = function(ctx) {
 		ctx.textAlign = "center";
 		ctx.textBaseline = 'middle';
 		//var textWidth = ctx.measureText(this.Planet.BoundingHex.Id);
-		ctx.fillText(this.Id, this.MidPoint.X, this.MidPoint.Y);
+		ctx.fillText(this.Id.row + ', ' + this.Id.col, this.MidPoint.X, this.MidPoint.Y);
 	}
 	
-	if(this.PathCoOrdX !== null && this.PathCoOrdY !== null && typeof(this.PathCoOrdX) != "undefined" && typeof(this.PathCoOrdY) != "undefined")
-	{
-		//draw co-ordinates for debugging
-		ctx.fillStyle = "black"
-		ctx.font = "bolder 8pt Trebuchet MS,Tahoma,Verdana,Arial,sans-serif";
-		ctx.textAlign = "center";
-		ctx.textBaseline = 'middle';
-		//var textWidth = ctx.measureText(this.Planet.BoundingHex.Id);
-		ctx.fillText("("+this.PathCoOrdX+","+this.PathCoOrdY+")", this.MidPoint.X, this.MidPoint.Y + 10);
-	}
+	// if(this.PathCoOrdX !== null && this.PathCoOrdY !== null && typeof(this.PathCoOrdX) != "undefined" && typeof(this.PathCoOrdY) != "undefined")
+	// {
+	// 	//draw co-ordinates for debugging
+	// 	ctx.fillStyle = "black"
+	// 	ctx.font = "bolder 8pt Trebuchet MS,Tahoma,Verdana,Arial,sans-serif";
+	// 	ctx.textAlign = "center";
+	// 	ctx.textBaseline = 'middle';
+	// 	//var textWidth = ctx.measureText(this.Planet.BoundingHex.Id);
+	// 	ctx.fillText("("+this.PathCoOrdX+","+this.PathCoOrdY+")", this.MidPoint.X, this.MidPoint.Y + 10);
+	// }
 	
 	if(HT.Hexagon.Static.DRAWSTATS)
 	{

@@ -3,6 +3,18 @@ var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 
+//Setup the grid the game will be played on
+function GetHexById(id) {
+  for(var i in grid.hexes)
+  {
+    if(grid.hexes[i].Id == id)
+    {
+      return grid.hexes[i];
+    }
+  }
+  return null;
+}
+
 app.use(express.static('public'));
 
 app.get('/', function(req, res){

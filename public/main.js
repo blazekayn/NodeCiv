@@ -15,9 +15,10 @@ $(document).ready(function(){
 
 	$("#btnGo").on('click', function(){
 		//Move our view
-		currentX = $("#txtXCoord").val();
-		currentY = $("#txtYCoord").val();
+		currentX = parseInt($("#txtXCoord").val());
+		currentY = parseInt($("#txtYCoord").val());
 		//redraw the grid
+		grid = new HT.Grid(canvasW * 100, canvasH * 100, currentX, currentY);
 		drawHexGrid();
 	});
 
@@ -53,7 +54,7 @@ function resizeCanvas(){
     canvas.height = document.body.clientHeight; //document.height is obsolete
     canvasW = canvas.width;
     canvasH = canvas.height;
-	grid = new HT.Grid(canvasW, canvasH, currentX, currentY);
+	grid = new HT.Grid(canvasW * 100, canvasH * 100, currentX, currentY);
 }
 
 function drawHexGrid(){
@@ -67,14 +68,13 @@ function drawHexGrid(){
 
 function getMouseClick(event)
 {
-	var xCoord = event.x;
-	var yCoord = event.y;
+	var x = event.x;
+	var y = event.y;
 
-	socket.emit('canvasClick', {x:xCoord, y:yCoord});
 
-	// var clickedHex = grid.GetHexAt(new HT.Point(x,y));
-	// clickedHex.selected = !clickedHex.selected;
-	// drawHexGrid();
+	var clickedHex = grid.GetHexAt(new HT.Point(x,y));
+	clickedHex.selected = !clickedHex.selected;
+	socket.emit('canvasClick', clickedHex.Id);
 
-	// alert(clickedHex.Id);
+	drawHexGrid();
 }
