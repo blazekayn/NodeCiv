@@ -1,13 +1,17 @@
-var canvasW = 0;
-var canvasH = 0;
-var canvas;
-var currentX = 0;
-var currentY = 0;
-var socket = io();
-var users = [];
-var me = {};
-var map = [];
-var grid = {};
+var socket = io(); //reference to socket for sending/receiving data
+var canvasW = 0; //Width of the canvas in px. Same as window width
+var canvasH = 0; //height of the canvas in px. Same as the window height
+var canvas; //reference to the canvas
+var users = []; //List of all connected users
+var me = {}; //The current user's data
+var map = []; //The currently loaded map tiles. The size of the grid atm
+var grid = {}; //The grid used to display the map
+var gridSizeX = 0; //Size of the visible map area
+var gridSizeY = 0; //Size of the visible map area
+var mapSizeX = 0; //size of total map
+var mapSizeY = 0; //size of the total map
+var currentX = 0; //The top left x we are visitng
+var currentY = 0; //the top left y we are visitng
 
 $(document).ready(function(){
 	canvas = document.getElementById("canvasMain");
@@ -18,30 +22,64 @@ $(document).ready(function(){
 		currentX = parseInt($("#txtXCoord").val());
 		currentY = parseInt($("#txtYCoord").val());
 
+		if(currentY - gridSizeY < 0){
+			currentY = 0
+		}
+
+		if(currentY + gridSizeY > mapSizeY - 1){
+			currentY = mapSizeY - gridSizeY;
+		}
+
+		if(currentX - gridSizeX < 0){
+			currentX = 0
+		}
+
+		if(currentX + gridSizeX > mapSizeX - 1){
+			currentX = mapSizeX - gridSizeX;
+		}
+
 		moveView(currentX, currentY);
 	});
 
+	//TODO - Currently these limit movement however they should wrap the world
 	$("#btnUp").on('click', function(){
 		//Move our view
-		currentY -= 6;
+		if(currentY - gridSizeY < 0){
+			currentY = 0
+		}else{
+			currentY -= gridSizeY;
+		}
 		moveView(currentX, currentY);
 	});
 
 	$("#btnDown").on('click', function(){
 		//Move our view
-		currentY += 6
+		if(currentY + gridSizeY > mapSizeY - 1){
+			currentY = mapSizeY - gridSizeY;
+		}else{
+			currentY += gridSizeY;
+		}
 		moveView(currentX, currentY);
 	});
 
 	$("#btnLeft").on('click', function(){
 		//Move our view
-		currentX -= 10;
+		if(currentX - gridSizeX < 0){
+			currentX = 0
+		}else{
+			currentX -= gridSizeX;
+		}
 		moveView(currentX, currentY);
 	});
 
 	$("#btnRight").on('click', function(){
 		//Move our view
-		currentX += 10;
+		//Dont allow navigation past the edge
+		if(currentX + gridSizeX > mapSizeX - 1){
+			currentX = mapSizeX - gridSizeX;
+		}else{
+			currentX += gridSizeX;
+		}
 		moveView(currentX, currentY);
 	});
 
@@ -52,10 +90,14 @@ $(document).ready(function(){
 	socket.on('userInfo', function(u){
 		me = u;
 		map = u.mapData;
-      	console.log(u);
-      	console.log(map);
+		gridSizeX = u.gridSizeX; //Size of the visible map area
+		gridSizeY = u.gridSizeY; //Size of the visible map area
+		mapSizeX  = u.mapSizeX; //size of total map
+		mapSizeY  = u.mapSizeY; //size of the total map
+		currentX  = u.currentX; //The top left x we are visitng
+		currentY  = u.currentY;
 
-      	grid = new HT.Grid(10,7, currentX, currentY, map);
+      	grid = new HT.Grid(gridSizeX,gridSizeY, currentX, currentY, map);
       	drawHexGrid();
     });
 
@@ -72,7 +114,7 @@ $(document).ready(function(){
 
 	socket.on('userClick', function(data){
 		map = data;
-		grid = new HT.Grid(10,7, currentX, currentY, map);
+		grid = new HT.Grid(gridSizeX,gridSizeY, currentX, currentY, map);
 		drawHexGrid();
 	});
 
@@ -90,7 +132,8 @@ $(document).ready(function(){
 		$("#txtXCoord").val(currentX);
 		$("#txtYCoord").val(currentY);
 
-		grid = new HT.Grid(10,7,currentX,currentY,map);
+		grid = new HT.Grid(gridSizeX,gridSizeY,currentX,currentY,map);
+		drawHexGrid();
 	});
 
 });
@@ -122,11 +165,12 @@ function getMouseClick(event)
 	var y = event.y;
 
 	var clickedHex = grid.GetHexAt(new HT.Point(x, y));
-	clickedHex.selected = !clickedHex.selected;
-	drawHexGrid();
+	if(clickedHex){
+		clickedHex.selected = !clickedHex.selected;
+		drawHexGrid();
+		socket.emit('canvasClick', {x:clickedHex.Id.col, y:clickedHex.Id.row});
 
-	socket.emit('canvasClick', {x:clickedHex.Id.col, y:clickedHex.Id.row});
-}
+	}}
 
 function moveView(x, y){
 	socket.emit('moveView', {x:x,y:y});

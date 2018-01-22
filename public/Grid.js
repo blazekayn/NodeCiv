@@ -4,43 +4,34 @@
  * A Grid is the model of the playfield containing hexes
  * @constructor
  */
-HT.Grid = function(/*double*/ width, /*double*/ height, /*integer*/ relataiveX, /*integer*/ relativeY, /*Array of Hexes*/map) {
+HT.Grid = function(/*double*/ width, /*double*/ height, /*integer*/ relativeX, /*integer*/ relativeY, /*Array of Hexes*/map) {
 	
 	this.Hexes = [];
 	this.map = map;
 	//setup a dictionary for use later for assigning the X or Y CoOrd (depending on Orientation)
 	var HexagonsByXOrYCoOrd = {}; //Dictionary<int, List<Hexagon>>
 
-	var row = relataiveX;
+	var row = relativeY;
 	var y = 0.0;
-	while (row < height + relataiveX)
+	while (row < height + relativeY)
 	{
-		var col = relativeY;
+		var col = relativeX;
 
 		var offset = 0.0;
 		if (row % 2 == 1)
 		{
-			if(HT.Hexagon.Static.ORIENTATION == HT.Hexagon.Orientation.Normal)
-				offset = (HT.Hexagon.Static.WIDTH - HT.Hexagon.Static.SIDE)/2 + HT.Hexagon.Static.SIDE;
-			else
-				offset = HT.Hexagon.Static.WIDTH / 2;
-			col = relativeY;
+			offset = HT.Hexagon.Static.WIDTH / 2;
 		}
 		
 		var x = offset;
-		while (col < width + relativeY)
+		while (col < width + relativeX)
 		{
-		    var hexId = this.GetHexId(row, col);
+		    var hexId = this.GetHexId(col, row);
 			var h = new HT.Hexagon(hexId, x, y, this.GetMapTile(col,row));
 			
-			var pathCoOrd = col;
-			if(HT.Hexagon.Static.ORIENTATION == HT.Hexagon.Orientation.Normal)
-				h.PathCoOrdX = col;//the column is the x coordinate of the hex, for the y coordinate we need to get more fancy
-			else {
-				h.PathCoOrdY = row;
-				pathCoOrd = row;
-			}
-			
+			h.PathCoOrdY = row;
+			pathCoOrd = row;
+
 			this.Hexes.push(h);
 			
 			if (!HexagonsByXOrYCoOrd[pathCoOrd])
@@ -48,16 +39,10 @@ HT.Grid = function(/*double*/ width, /*double*/ height, /*integer*/ relataiveX, 
 			HexagonsByXOrYCoOrd[pathCoOrd].push(h);
 
 			col+=1;
-			if(HT.Hexagon.Static.ORIENTATION == HT.Hexagon.Orientation.Normal)
-				x += HT.Hexagon.Static.WIDTH + HT.Hexagon.Static.SIDE;
-			else
-				x += HT.Hexagon.Static.WIDTH;
+			x += HT.Hexagon.Static.WIDTH;
 		}
 		row++;
-		if(HT.Hexagon.Static.ORIENTATION == HT.Hexagon.Orientation.Normal)
-			y += HT.Hexagon.Static.HEIGHT / 2;
-		else
-			y += (HT.Hexagon.Static.HEIGHT - HT.Hexagon.Static.SIDE)/2 + HT.Hexagon.Static.SIDE;
+		y += (HT.Hexagon.Static.HEIGHT - HT.Hexagon.Static.SIDE)/2 + HT.Hexagon.Static.SIDE;
 	}
 
 	//finally go through our list of hexagons by their x co-ordinate to assign the y co-ordinate
@@ -76,8 +61,8 @@ HT.Grid = function(/*double*/ width, /*double*/ height, /*integer*/ relataiveX, 
 	}
 };
 
-HT.Grid.prototype.GetHexId = function(row, col) {
-	return {row:row, col:col};
+HT.Grid.prototype.GetHexId = function(col, row) {
+	return {col:col, row:row};
 };
 
 /**

@@ -9,14 +9,20 @@ app.get('/', function(req, res){
   res.sendFile(__dirname + '/public/main.html');
 });
 
-http.listen(80, '0.0.0.0', function(){
-	console.log('listening on *:80');
+http.listen(3000, '0.0.0.0', function(){
+	console.log('listening on *:3000');
 });
 
 //Tile Stuff
+var gridSizeX = 10; //Size of the visible map area
+var gridSizeY = 7; //Size of the visible map area
+var mapSizeX = 100; //size of total map
+var mapSizeY = 100; //size of the total map
+var currentX = 0; //The top left x we are visitng
+var currentY = 0; //the top left y we are visitng
 var tiles = [];
-for (var x = 0; x < 100; x++){
-  for(var y = 0; y < 100; y++){
+for (var x = 0; x < mapSizeX; x++){
+  for(var y = 0; y < mapSizeY; y++){
     var tile = {}
     tile.x = x;
     tile.y = y;
@@ -26,6 +32,7 @@ for (var x = 0; x < 100; x++){
     tiles.push(tile);
   }
 }
+
 
 //Returns a siingle tile at x,y
 function getTile(x,y){
@@ -58,6 +65,12 @@ io.on('connection', function(socket){
   user.color = colors[users.length%6];
   user.id = users.length;
   user.mapData = getTileArea(0,0);
+  user.gridSizeX = gridSizeX; //Size of the visible map area
+  user.gridSizeY = gridSizeY; //Size of the visible map area
+  user.mapSizeX  = mapSizeX; //size of total map
+  user.mapSizeY  = mapSizeY; //size of the total map
+  user.currentX  = currentX; //The top left x we are visitng
+  user.currentY  = currentY;
   users.push(user);
   //Tell the new user what their color and stuff is
   socket.emit('userInfo', user);
