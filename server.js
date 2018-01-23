@@ -20,42 +20,15 @@ var mapSizeX = 100; //size of total map
 var mapSizeY = 100; //size of the total map
 var currentX = 0; //The top left x we are visitng
 var currentY = 0; //the top left y we are visitng
+var colors = ['#7FFF00', '#DC143C', '#00FFFF', '#8B008B', '#191970', '#FF4500'];
+var users = [];
 var tiles = [];
 for (var x = 0; x < mapSizeX; x++){
   for(var y = 0; y < mapSizeY; y++){
-    var tile = {}
-    tile.x = x;
-    tile.y = y;
-    tile.tileType = (Math.floor((Math.random() * 5) + 1) > 1 ? "land" : "water");
-    tile.selected = false;
-    tile.color = (tile.tileType === 'land' ? 'green' : 'lightBlue');
-    tiles.push(tile);
+    tiles.push(createTile(x,y));
   }
 }
 
-
-//Returns a siingle tile at x,y
-function getTile(x,y){
-  for(var i = 0; i < tiles.length; i++){
-    if(tiles[i].x === x && tiles[i].y === y){
-      return tiles[i];
-    }
-  }
-}
-
-//Returns the area around x,y (ie x,y to x+9,y+6)
-function getTileArea(x,y){
-  tArea = [];
-  for(var i = 0; i < 10; i++){
-    for(var j = 0; j < 7; j++){
-      tArea.push(getTile(x+i, y+j));
-    }
-  }
-  return tArea;
-}
-
-var colors = ['red', 'yellow', 'pink', 'blue', 'darkGreen', 'gary'];
-var users = [];
 
 io.on('connection', function(socket){
   /*************NEW USER CONNECTED*********************/
@@ -89,9 +62,10 @@ io.on('connection', function(socket){
     var tile = getTile(data.x, data.y);
     tile.selected = !tile.selected;
     if(tile.selected){
-      tile.color = user.color;
+      tile.owner = user.color;
+      console.log('clicked owner ' + user.color);
     }else{
-      tile.color = (tile.tileType === 'land' ? 'green' : 'lightBlue');
+      tile.owner = null;
     }
     io.emit('userClick', getTileArea(0,0));
     console.log('user ' + user.color + ' ' + (tile.selected ? '' : 'de') + 'selected tile (' + data.x + ',' + data.y + ')');
@@ -112,3 +86,73 @@ io.on('connection', function(socket){
 	});
 
 });
+
+/******************HELPER FUNCTION*********************/
+//Returns a siingle tile at x,y
+function getTile(x,y){
+  for(var i = 0; i < tiles.length; i++){
+    if(tiles[i].x === x && tiles[i].y === y){
+      return tiles[i];
+    }
+  }
+}
+
+//Returns the area around x,y (ie x,y to x+9,y+6)
+function getTileArea(x,y){
+  tArea = [];
+  for(var i = 0; i < 10; i++){
+    for(var j = 0; j < 7; j++){
+      tArea.push(getTile(x+i, y+j));
+    }
+  }
+  return tArea;
+}
+
+//Creates Tiles
+function createTile(x,y){
+  var tile = {}
+  tile.x = x;
+  tile.y = y;
+  tile.tileType = createTileType();
+  tile.selected = false;
+  tile.color = getTileColorFromType(tile.tileType); //will be replaced with texture name sometime
+  tile.owner = null;
+  return tile;
+}
+
+//Get a random tyle type
+function createTileType(){
+  var rand = Math.floor((Math.random() * 100)); //Get a random number 0-99
+  if (rand < 5){ //0-4 : 5/100
+    return 'gold';
+  }else if(rand < 15){//5-14 : 10/100
+    return 'pond';
+  }else if(rand < 27){//15-26 : 12/100
+    return 'forest';
+  }else if(rand < 47){//27-46 : 20/100
+    return 'water';
+  }else if(rand < 67){//47-66 : 20/100
+    return 'flat';
+  }else{//67-99 33/100
+    return 'land';
+  }
+}
+
+function getTileColorFromType(tileType){
+  switch(tileType){
+    case 'gold':
+      return '#B8860B';
+    case 'pond':
+      return '#ADD8E6';
+    case 'forest':
+      return '#556B2F';
+    case 'water':
+      return '#00008B';
+    case 'flat':
+      return '#DEB887';
+    case 'land':
+      return '#008000';
+    default:
+      return '#FF69B4';
+  }
+}

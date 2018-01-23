@@ -65,6 +65,7 @@ HT.Hexagon = function(id, x, y, mapTile) {
 	this.selected = mapTile.selected;
 	this.tileType = mapTile.tileType;
 	this.color = mapTile.color;
+	this.owner = mapTile.owner;
 };
 	
 /**
@@ -74,8 +75,9 @@ HT.Hexagon = function(id, x, y, mapTile) {
 HT.Hexagon.prototype.draw = function(ctx) {
 
 	ctx.fillStyle = this.color;
+	ctx.strokeStyle = (this.owner?this.owner:'#FFFFFF');
+	ctx.lineWidth = 3;
 
-	ctx.lineWidth = 1;
 	ctx.beginPath();
 	ctx.moveTo(this.Points[0].X, this.Points[0].Y);
 	for(var i = 1; i < this.Points.length; i++)
@@ -85,16 +87,32 @@ HT.Hexagon.prototype.draw = function(ctx) {
 	}
 	ctx.closePath();
 	ctx.fill();
+	if(this.owner){
+		ctx.stroke();
+		if(this.owner !== me.color){
+			var rgb = hexToRgb(this.owner);
+			ctx.fillStyle = 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',.5)';
+			ctx.beginPath();
+			ctx.moveTo(this.Points[0].X, this.Points[0].Y);
+			for(var i = 1; i < this.Points.length; i++)
+			{
+				var p = this.Points[i];
+				ctx.lineTo(p.X, p.Y);
+			}
+			ctx.closePath();
+			ctx.fill();
+		}
+	}
 	
 	if(this.Id)
 	{
 		//draw text for debugging
-		ctx.fillStyle = "black"
+		ctx.fillStyle = "white"
 		ctx.font = "bolder 8pt Trebuchet MS,Tahoma,Verdana,Arial,sans-serif";
 		ctx.textAlign = "center";
 		ctx.textBaseline = 'middle';
 		//var textWidth = ctx.measureText(this.Planet.BoundingHex.Id);
-		ctx.fillText(this.Id.row + ', ' + this.Id.col, this.MidPoint.X, this.MidPoint.Y);
+		ctx.fillText(this.Id.row + ', ' + this.Id.col, this.MidPoint.X, this.MidPoint.Y + 25);
 	}
 	
 	// if(this.PathCoOrdX !== null && this.PathCoOrdY !== null && typeof(this.PathCoOrdX) != "undefined" && typeof(this.PathCoOrdY) != "undefined")
