@@ -83,23 +83,48 @@ $(document).ready(function(){
 		moveView(currentX, currentY);
 	});
 
+	$('#spanActionsMenuClose').on('click', function(){
+		$('#divActionsMenu').hide();
+	});
+
 	/**********END BUTTON CLICK EVENTS***************/
 	canvas.addEventListener("mousedown", getMouseClick, false);
 
 	//Sent when connected to the server this is your user data
-	socket.on('userInfo', function(u){
-		me = u;
-		map = u.mapData;
-		gridSizeX = u.gridSizeX; //Size of the visible map area
-		gridSizeY = u.gridSizeY; //Size of the visible map area
-		mapSizeX  = u.mapSizeX; //size of total map
-		mapSizeY  = u.mapSizeY; //size of the total map
-		currentX  = u.currentX; //The top left x we are visitng
-		currentY  = u.currentY;
+	socket.on('userInfo', function(data){
+		me = data.user;
+		map = data.map;
+		gridSizeX = me.gridSizeX; //Size of the visible map area
+		gridSizeY = me.gridSizeY; //Size of the visible map area
+		mapSizeX  = me.mapSizeX; //size of total map
+		mapSizeY  = me.mapSizeY; //size of the total map
+		currentX  = me.currentX; //The top left x we are visitng
+		currentY  = me.currentY;
+
+		$('#spanGold').text('Gold: ' + me.gold);
+		$('#spanWood').text('Wood: ' + me.wood);
+		$('#spanFood').text('Food: ' + me.food);
+		$('#spanPopulation').text('Population: ' + me.population);
+		$('#spanHappy').text('Happieness: ' + me.happy + '/100');
 
       	grid = new HT.Grid(gridSizeX,gridSizeY, currentX, currentY, map);
       	drawHexGrid();
     });
+
+	//runs 1/sec
+	socket.on('gameUpdate', function(data){
+		me = data.user;
+		//map = data.map; //TODO : right now updating the map causes race issue
+		$('#spanGold').text('Gold: ' + me.gold);
+		$('#spanWood').text('Wood: ' + me.wood);
+		$('#spanFood').text('Food: ' + me.food);
+		$('#spanPopulation').text('Population: ' + me.population);
+		$('#spanHappy').text('Happieness: ' + me.happy + '/100');
+
+
+		//grid = new HT.Grid(gridSizeX,gridSizeY, currentX, currentY, map);
+      	//drawHexGrid();
+	});
 
 	//Sent when first connecting is a list of current users in the game
     socket.on('existingUsers', function(users){
@@ -116,6 +141,11 @@ $(document).ready(function(){
 		map = data;
 		grid = new HT.Grid(gridSizeX,gridSizeY, currentX, currentY, map);
 		drawHexGrid();
+	});
+
+	socket.on('clickedTile', function(data){
+		//$('#divActionsMenu').show(); //TODO
+		
 	});
 
 	socket.on('newView', function(data){

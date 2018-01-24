@@ -6,6 +6,7 @@
 		<script src="HexagonTools.js"></script>
 		<script src="Grid.js"></script>
 		<script src="main.js"></script>
+		<script src="canvasgui.js"></script>
 	</head>
 	<body>
 		<div id="divCoordControls">
@@ -24,6 +25,20 @@
 		</div>
 		<div id="divMoveRight">
 			<button type="button" id="btnRight">Right</button>
+		</div>
+		<div id="divResources">
+			<span id="spanGold"></span><br/>
+			<span id="spanWood"></span><br/>
+			<span id="spanFood"></span><br/>
+			<span id="spanPopulation"></span><br/>
+			<span id="spanHappy"></span>
+		</div>
+		<div id="divActionsMenu" class="modal">
+			<!-- Modal content -->
+			<div class="modal-content">
+				<span id="spanActionsMenuClose" class="close">&times;</span>
+				
+			</div>
 		</div>
 		<canvas id="canvasMain"></canvas>
 	</body>
