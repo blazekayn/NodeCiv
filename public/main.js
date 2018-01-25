@@ -1,17 +1,18 @@
 var socket = io(); //reference to socket for sending/receiving data
-var canvasW = 0; //Width of the canvas in px. Same as window width
-var canvasH = 0; //height of the canvas in px. Same as the window height
-var canvas; //reference to the canvas
-var users = []; //List of all connected users
-var me = {}; //The current user's data
-var map = []; //The currently loaded map tiles. The size of the grid atm
-var grid = {}; //The grid used to display the map
+var canvasW = 0;   //Width of the canvas in px. Same as window width
+var canvasH = 0;   //height of the canvas in px. Same as the window height
+var canvas;        //reference to the canvas
+var users = [];    //List of all connected users
+var me = {};       //The current user's data
+var map = [];      //The currently loaded map tiles. The size of the grid atm
+var grid = {}; 	   //The grid used to display the map
 var gridSizeX = 0; //Size of the visible map area
 var gridSizeY = 0; //Size of the visible map area
-var mapSizeX = 0; //size of total map
-var mapSizeY = 0; //size of the total map
-var currentX = 0; //The top left x we are visitng
-var currentY = 0; //the top left y we are visitng
+var mapSizeX = 0;  //size of total map
+var mapSizeY = 0;  //size of the total map
+var currentX = 0;  //The top left x we are visitng
+var currentY = 0;  //the top left y we are visitng
+var selectedTile = {};
 
 $(document).ready(function(){
 	canvas = document.getElementById("canvasMain");
@@ -87,6 +88,10 @@ $(document).ready(function(){
 		$('#divActionsMenu').hide();
 	});
 
+	$('#btnPlaceCity').on('click', function(){
+		socket.emit('buildCity', selectedTile);
+	});
+
 	/**********END BUTTON CLICK EVENTS***************/
 	canvas.addEventListener("mousedown", getMouseClick, false);
 
@@ -105,7 +110,7 @@ $(document).ready(function(){
 		$('#spanWood').text('Wood: ' + me.wood);
 		$('#spanFood').text('Food: ' + me.food);
 		$('#spanPopulation').text('Population: ' + me.population);
-		$('#spanHappy').text('Happieness: ' + me.happy + '/100');
+		$('#spanHappy').text('Happiness: ' + me.happy + '/100');
 
       	grid = new HT.Grid(gridSizeX,gridSizeY, currentX, currentY, map);
       	drawHexGrid();
@@ -114,16 +119,16 @@ $(document).ready(function(){
 	//runs 1/sec
 	socket.on('gameUpdate', function(data){
 		me = data.user;
-		//map = data.map; //TODO : right now updating the map causes race issue
+		map = data.map; //TODO : right now updating the map causes race issue
 		$('#spanGold').text('Gold: ' + me.gold);
 		$('#spanWood').text('Wood: ' + me.wood);
 		$('#spanFood').text('Food: ' + me.food);
 		$('#spanPopulation').text('Population: ' + me.population);
-		$('#spanHappy').text('Happieness: ' + me.happy + '/100');
+		$('#spanHappy').text('Happiness: ' + me.happy + '/100');
 
 
-		//grid = new HT.Grid(gridSizeX,gridSizeY, currentX, currentY, map);
-      	//drawHexGrid();
+		grid = new HT.Grid(gridSizeX,gridSizeY, currentX, currentY, map);
+      	drawHexGrid();
 	});
 
 	//Sent when first connecting is a list of current users in the game
@@ -144,8 +149,9 @@ $(document).ready(function(){
 	});
 
 	socket.on('clickedTile', function(data){
-		//$('#divActionsMenu').show(); //TODO
-		
+		$('#divActionsMenu').show(); //TODO
+		$('#spanActionsMenuClickedTile').text('{' + data.x + ', ' + data.y + '} Type: ' + data.tileType);
+		selectedTile = data;
 	});
 
 	socket.on('newView', function(data){

@@ -66,6 +66,7 @@ HT.Hexagon = function(id, x, y, mapTile) {
 	this.tileType = mapTile.tileType;
 	this.color = mapTile.color;
 	this.owner = mapTile.owner;
+	this.city = mapTile.city;
 };
 	
 /**
@@ -104,6 +105,11 @@ HT.Hexagon.prototype.draw = function(ctx) {
 		}
 	}
 	
+	if(this.city){
+		ctx.fillStyle = this.city.color;
+		ctx.fillRect(this.MidPoint.X-5, this.MidPoint.Y-5, 10, 10);
+	}
+
 	if(this.Id)
 	{
 		//draw text for debugging
@@ -115,40 +121,6 @@ HT.Hexagon.prototype.draw = function(ctx) {
 		ctx.fillText(this.Id.row + ', ' + this.Id.col, this.MidPoint.X, this.MidPoint.Y + 25);
 	}
 	
-	// if(this.PathCoOrdX !== null && this.PathCoOrdY !== null && typeof(this.PathCoOrdX) != "undefined" && typeof(this.PathCoOrdY) != "undefined")
-	// {
-	// 	//draw co-ordinates for debugging
-	// 	ctx.fillStyle = "black"
-	// 	ctx.font = "bolder 8pt Trebuchet MS,Tahoma,Verdana,Arial,sans-serif";
-	// 	ctx.textAlign = "center";
-	// 	ctx.textBaseline = 'middle';
-	// 	//var textWidth = ctx.measureText(this.Planet.BoundingHex.Id);
-	// 	ctx.fillText("("+this.PathCoOrdX+","+this.PathCoOrdY+")", this.MidPoint.X, this.MidPoint.Y + 10);
-	// }
-	
-	// if(HT.Hexagon.Static.DRAWSTATS)
-	// {
-	// 	ctx.strokeStyle = "black";
-	// 	ctx.lineWidth = 2;
-	// 	//draw our x1, y1, and z
-	// 	ctx.beginPath();
-	// 	ctx.moveTo(this.P1.X, this.y);
-	// 	ctx.lineTo(this.P1.X, this.P1.Y);
-	// 	ctx.lineTo(this.x, this.P1.Y);
-	// 	ctx.closePath();
-	// 	ctx.stroke();
-		
-	// 	ctx.fillStyle = "black"
-	// 	ctx.font = "bolder 8pt Trebuchet MS,Tahoma,Verdana,Arial,sans-serif";
-	// 	ctx.textAlign = "left";
-	// 	ctx.textBaseline = 'middle';
-	// 	//var textWidth = ctx.measureText(this.Planet.BoundingHex.Id);
-	// 	ctx.fillText("z", this.x + this.x1/2 - 8, this.y + this.y1/2);
-	// 	ctx.fillText("x", this.x + this.x1/2, this.P1.Y + 10);
-	// 	ctx.fillText("y", this.P1.X + 2, this.y + this.y1/2);
-	// 	ctx.fillText("z = " + HT.Hexagon.Static.SIDE, this.P1.X, this.P1.Y + this.y1 + 10);
-	// 	ctx.fillText("(" + this.x1.toFixed(2) + "," + this.y1.toFixed(2) + ")", this.P1.X, this.P1.Y + 10);
-	// }
 };
 
 /**
