@@ -2,6 +2,25 @@ var express = require('express');
 var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
+var Connection = require('tedious').Connection;
+var config = {
+    userName: 'civ_app',
+    password: 'password',
+    server: 'localhost'
+  };
+
+  var connection = new Connection(config);
+
+  connection.on('connect', function(err) {
+    // If no error, then good to go...
+      //executeStatement();
+      if(err){
+        console.log(err);
+      }
+      //connection.execSql('SELECT * FROM tbl_user' );
+    }
+  );
+
 
 app.use(express.static('public'));
 
