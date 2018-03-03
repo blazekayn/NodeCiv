@@ -13,11 +13,30 @@ var mapSizeY = 0;  //size of the total map
 var currentX = 0;  //The top left x we are visitng
 var currentY = 0;  //the top left y we are visitng
 var selectedTile = {};
+var loggedIn = false;
 
 $(document).ready(function(){
+	if(!loggedIn){
+		$('#divLoginMenu').show();
+	};
+
 	canvas = document.getElementById("canvasMain");
 	resizeCanvas();
 	/************ BUTTON CLICK EVENTS **************/
+	$('#btnLogin').on('click', function(){
+		//Send credentials to server and see if we logged in
+		socket.emit('login', {username:$('#txtUsername').val(), password:$('#txtPassword').val()});
+		$('#spanLoginError').text('');
+		$('#btnLogin').prop("disabled",true);
+	});
+
+	$('#btnRegister').on('click', function(){
+		socket.emit('register', {username:$('#txtUsername').val(), password:$('#txtPassword').val()});
+		$('#spanLoginError').text('');
+		$('#btnLogin').prop("disabled",true);
+		$('#btnRegister').prop("disabled",true);
+	});
+
 	$("#btnGo").on('click', function(){
 		//Move our view
 		currentX = parseInt($("#txtXCoord").val());
@@ -129,6 +148,18 @@ $(document).ready(function(){
 
 		grid = new HT.Grid(gridSizeX,gridSizeY, currentX, currentY, map);
       	drawHexGrid();
+	});
+
+	//Sent after the users credentials are checked
+	socket.on('loginSuccess', function(data){
+		loggedIn = true;
+		$('#divLoginMenu').hide();
+	});
+
+	socket.on('loginFailed', function(data){
+		$('#btnLogin').prop("disabled",false);
+		$('#txtPassword').val('');
+		$('#spanLoginError').text('Invalid Login');
 	});
 
 	//Sent when first connecting is a list of current users in the game

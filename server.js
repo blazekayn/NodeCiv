@@ -2,24 +2,48 @@ var express = require('express');
 var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
-var Connection = require('tedious').Connection;
-var config = {
-    userName: 'civ_app',
-    password: 'password',
-    server: 'localhost'
-  };
+var mysql = require('mysql');
+var pool = mysql.createPool({
+  connectionLimit: 100,
+  host: "localhost",
+  user: "gameuser",
+  password: "password",
+  port: 3306,
+  database: "game_data"
+});
 
-  var connection = new Connection(config);
-
-  connection.on('connect', function(err) {
-    // If no error, then good to go...
-      //executeStatement();
-      if(err){
-        console.log(err);
-      }
-      //connection.execSql('SELECT * FROM tbl_user' );
+/**
+* Get database result asyn
+*
+**/
+function executeQuery(query, params, callback) {
+  pool.getConnection(function (err, connection){
+    if(err){
+      return callback(err, null);
+    } else if(connection){
+      connection.query(query, params, function(err, rows, fields){
+        connection.release();
+        if(err){
+          return callback(err, null);
+        }
+        return callback(null, rows);
+      });
+    }else{
+      return callback(true, "No Connection");
     }
-  );
+  });
+}
+
+function getResult(query, params, callback){
+  executeQuery(query, params, function(err, rows){
+    if(!err){
+      callback(null, rows);
+    }else{
+      callback(true, err);
+    }
+  });
+}
+/*****************************************/
 
 
 app.use(express.static('public'));
@@ -53,22 +77,73 @@ for (var x = 0; x < mapSizeX; x++){
 io.on('connection', function(socket){
   /*************NEW USER CONNECTED*********************/
 	console.log('a user connected');
-  //Create an object to keep track of the new user
-  var user = createUser()
-  users.push(user);
-  socketUsers.push({socket: socket, user:user});
-  //Tell the new user what their color and stuff is
-  socket.emit('userInfo', {user:user, map:getTileArea(0,0)});
-
-  //Tell all the current users there is a new user to keep track of
-  socket.broadcast.emit('newUser', user);
-  console.log('New user color ' + user.color);
-  //Tell the new user what users are already in the game
-  socket.emit('existingUsers', users);
-
+  console.log('waiting for login');
   /*******END NEW USER CONNECTED********************/
 
-  /************USER EVENTS**************************/
+  /**************USER LOGIN*************************/
+  socket.on('login', function(data){
+    getResult('SELECT active FROM tbl_user WHERE username=? AND password=?',[data.username, data.password], function(err, results){
+      if(err){ 
+        socket.emit('loginFailed'); //error occured
+        return;
+      }
+      if(!results || results.length === 0){
+        socket.emit('loginFailed'); //user not found
+        return;
+      }
+      if(results[0].active === 1){
+        socket.emit('loginSuccess');
+        //Create an object to keep track of the new user
+        var user = createUser();
+        users.push(user);
+        socketUsers.push({socket: socket, user:user});
+        //Tell the new user what their color and stuff is
+        socket.emit('userInfo', {user:user, map:getTileArea(0,0)});
+
+        //Tell all the current users there is a new user to keep track of
+        socket.broadcast.emit('newUser', user);
+        console.log('New user color ' + user.color);
+        //Tell the new user what users are already in the game
+        socket.emit('existingUsers', users);
+
+        //Setup user events
+        setUserEvents(socket);
+        return;
+      }else{
+        //login failed
+        socket.emit('loginFailed'); //user not active
+        return;
+      }
+    });
+    
+  });
+  /***************END USER LOGIN***********/
+});
+
+/*******GAME LOOP**********/
+//everysecond
+setInterval(gameLoop,1000);
+
+function gameLoop(){
+  for(var i = 0; i < users.length; i++){
+    users[i].gold += users[i].goldRate;
+    users[i].wood += users[i].woodRate;
+    users[i].food += users[i].foodRate;
+    users[i].population += users[i].popRate;
+    users[i].happy = Math.min(users[i].happy + users[i].happyRate, 100); //limit happy at 100
+    var uSocket = getSocketByUser(users[i]);
+    if(uSocket){
+      uSocket.emit('gameUpdate', {user:users[i], map:getTileArea(users[i].currentX,users[i].currentY)});
+    }
+  }
+
+}
+/**************************/
+
+
+/******************HELPER FUNCTION*********************/
+function setUserEvents(socket){
+   /************USER EVENTS**************************/
 
   socket.on('canvasClick', function(data){
     var tile = getTile(data.x, data.y);
@@ -113,34 +188,11 @@ io.on('connection', function(socket){
   /*************END USER EVENTS*********************/
 
   //Handle a user disconnecting
-	socket.on('disconnect', function(){
-		console.log('user disconnected');
-	});
-
-});
-
-/*******GAME LOOP**********/
-//everysecond
-setInterval(gameLoop,1000);
-
-function gameLoop(){
-  for(var i = 0; i < users.length; i++){
-    users[i].gold += users[i].goldRate;
-    users[i].wood += users[i].woodRate;
-    users[i].food += users[i].foodRate;
-    users[i].population += users[i].popRate;
-    users[i].happy = Math.min(users[i].happy + users[i].happyRate, 100); //limit happy at 100
-    var uSocket = getSocketByUser(users[i]);
-    if(uSocket){
-      uSocket.emit('gameUpdate', {user:users[i], map:getTileArea(users[i].currentX,users[i].currentY)});
-    }
-  }
-
+  socket.on('disconnect', function(){
+    console.log('user disconnected');
+  });
 }
-/**************************/
 
-
-/******************HELPER FUNCTION*********************/
 //Returns a socket based on the given user
 function getSocketByUser(user){
   for(var i = 0; i < socketUsers.length; i++){
@@ -266,3 +318,16 @@ getHexDistance = function(/*{x,y}*/ h1, /*{x,y}*/ h2) {
   var deltaY = h1.y - h2.y;
   return ((Math.abs(deltaX) + Math.abs(deltaY) + Math.abs(deltaX - deltaY)) / 2);
 };
+
+/******************* SQL FUNCTIONS **********************/
+function sql(s, c){
+  con.connect(function(err) {
+    if (err) throw err;
+    console.log("Connected!");
+    con.query(s, function(err, result){
+      if(err) throw err;
+      return result;
+    });
+  });
+  return null;
+}
