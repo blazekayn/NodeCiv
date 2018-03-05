@@ -19,6 +19,7 @@ var pool = mysql.createPool({
 function executeQuery(query, params, callback) {
   pool.getConnection(function (err, connection){
     if(err){
+      console.log(err);
       return callback(err, null);
     } else if(connection){
       connection.query(query, params, function(err, rows, fields){
@@ -39,6 +40,7 @@ function getResult(query, params, callback){
     if(!err){
       callback(null, rows);
     }else{
+      console.log(err);
       callback(true, err);
     }
   });
@@ -71,6 +73,21 @@ var cities = [];
 for (var x = 0; x < mapSizeX; x++){
   for(var y = 0; y < mapSizeY; y++){
     tiles.push(createTile(x,y));
+    // pool.getConnection(function (err, connection){
+    //   if(err){
+    //     return callback(err, null);
+    //   } else if(connection){
+    //     connection.query('INSERT INTO tbl_map_tile(x_coord, y_coord, map_tile_type_id, tile_level) VALUES(', params, function(err, rows, fields){
+    //       connection.release();
+    //       if(err){
+    //         return callback(err, null);
+    //       }
+    //       return callback(null, rows);
+    //     });
+    //   }else{
+    //     return callback(true, "No Connection");
+    //   }
+    // });
   }
 }
 
@@ -82,7 +99,7 @@ io.on('connection', function(socket){
 
   /**************USER LOGIN*************************/
   socket.on('login', function(data){
-    getResult('SELECT active FROM tbl_user WHERE username=? AND password=?',[data.username, data.password], function(err, results){
+    getResult('SELECT active, user_id FROM tbl_user WHERE username=? AND password=?',[data.username, data.password], function(err, results){
       if(err){ 
         socket.emit('loginFailed'); //error occured
         return;
@@ -115,7 +132,27 @@ io.on('connection', function(socket){
         return;
       }
     });
+
+  });
     
+  socket.on('register', function(data){
+    getResult('SELECT * FROM tbl_user WHERE username=?', [data.username], function(err, results){
+      if(err){
+        socket.emit('registerFailed'); //database error
+        return;
+      }
+      if(results.length > 0){
+        socket.emit('registerFailed'); //user exists
+        return;
+      }
+      getResult('INSERT INTO tbl_user(username, password) VALUES(?,?);', [data.username, data.password], function(err, results){
+        if(err){
+          return; //user not created database error
+        }
+        console.log('user created: ' + data.username);
+        socket.emit('registerSuccess');
+      });
+    });
   });
   /***************END USER LOGIN***********/
 });

@@ -162,6 +162,17 @@ $(document).ready(function(){
 		$('#spanLoginError').text('Invalid Login');
 	});
 
+	socket.on('registerSuccess', function(data){
+		$('#btnLogin').prop("disabled",false);
+	});
+
+	socket.on('registerFailed', function(data){
+		$('#btnLogin').prop("disabled",false);
+		$('#btnRegister').prop("disabled",false);
+		$('#txtPassword').val('');
+		$('#spanLoginError').text('User not created');
+	});
+
 	//Sent when first connecting is a list of current users in the game
     socket.on('existingUsers', function(users){
      	console.log(users);
