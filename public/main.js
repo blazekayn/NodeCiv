@@ -111,6 +111,14 @@ $(document).ready(function(){
 		socket.emit('buildCity', selectedTile);
 	});
 
+	$('#btnSendMessage').on('click', function(){
+		var chatMessage = $('#txtChatMessage').val();
+		$('#txtChatMessage').val('');
+		//Send the new chat message to the server
+		socket.emit('chatMessage', {text:chatMessage});
+		writeChatMessage('me',chatMessage);
+	});
+
 	/**********END BUTTON CLICK EVENTS***************/
 	canvas.addEventListener("mousedown", getMouseClick, false);
 
@@ -214,6 +222,10 @@ $(document).ready(function(){
 		drawHexGrid();
 	});
 
+	socket.on('globalMessage', function(data){
+		writeChatMessage('you', data.text)
+	});
+
 });
 
 $(window).resize(function(){
@@ -262,4 +274,9 @@ function hexToRgb(hex) {
         g: parseInt(result[2], 16),
         b: parseInt(result[3], 16)
     } : null;
+}
+
+function writeChatMessage(sender, chatMessage){
+	//add this message to our chat log. We will not get confirmation from the server about this message
+	$('#divChatLog').append('<div class="chat-div"><span class="sender-span">' + sender + ': ' + '</span><span class="message-span">' + chatMessage + '</span></div>');
 }

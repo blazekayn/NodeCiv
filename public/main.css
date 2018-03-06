@@ -90,8 +90,18 @@ body{
 	width: 500px;
 }
 #btnSendMessage{
+	
 }
-
+.chat-div{
+	width:100%;
+	padding-left: 0;
+	padding-right: 0;
+	border: 0;
+	color:white;
+}
+.sender-span{
+	color:green;
+}
 
 /* The Modal (background) 
 https://www.w3schools.com/howto/howto_css_modals.asp

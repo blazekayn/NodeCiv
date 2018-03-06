@@ -224,6 +224,24 @@ function setUserEvents(socket){
   });
   /*************END USER EVENTS*********************/
 
+  /***************CHAT EVENTS**********************/
+  socket.on('chatMessage', function(data){
+    if(!data){
+      return;
+    }
+    if(data.text){
+      getResult("INSERT INTO tbl_chat_message(sent_by, message_text) VALUES(?,?)",[1,data.text], function(err, results){
+        if(err){
+          return;
+        }
+        //send to everyone who is not the sender because the sender all has a local copy handled by the client code
+        socket.broadcast.emit('globalMessage', {text:data.text, sentBy:'username', time:(new Date()).getTime()});
+      });
+    }
+  });
+
+  /*************END CHAT EVENTS********************/
+
   //Handle a user disconnecting
   socket.on('disconnect', function(){
     console.log('user disconnected');
