@@ -164,32 +164,32 @@ io.on('connection', function(socket){
 
 /*******GAME LOOP**********/
 //everysecond
-setInterval(gameLoop,1000);
+setInterval(gameLoop,6000); //10 tick a minute
 
 function gameLoop(){
   getResult('CALL sp_game_loop()',null,function(){});
   for(var i = 0; i < users.length; i++){
-    // users[i].gold += users[i].goldRate;
-    // users[i].wood += users[i].woodRate;
-    // users[i].food += users[i].foodRate;
-    // users[i].population += users[i].popRate;
-    // users[i].happy = Math.min(users[i].happy + users[i].happyRate, 100); //limit happy at 100
-    getResult('SELECT gold, wood, food, population, happiness FROM tbl_user WHERE username IN (?);', [users[i].username], function(err, results){
+    updateUser(users[i]);
+  }
+
+}
+
+function updateUser(user){
+	getResult('SELECT gold, wood, food, population, happiness FROM tbl_user WHERE username IN (?);', [user.username], function(err, results){
     	if(err){
     		return;
     	}
-    	console.log(results);
-    	console.log(results[0]);
-    	console.log(results[0].gold);
-    	var temp = results[0];
-    	return temp;
+    	user.gold = results[0].gold;
+    	user.wood = results[0].wood;
+    	user.food = results[0].food;
+    	user.population =  results[0].population;
+    	user.happy = results[0].happiness;
+    	console.log('sending to user ' + user.username);
+	    var uSocket = getSocketByUser(user);
+	    if(uSocket){
+	      uSocket.emit('gameUpdate', {user:user, map:getTileArea(user.currentX,user.currentY)});
+	    }
     });
-    var uSocket = getSocketByUser(users[i]);
-    if(uSocket){
-      uSocket.emit('gameUpdate', {user:users[i], map:getTileArea(users[i].currentX,users[i].currentY)});
-    }
-  }
-
 }
 /**************************/
 
@@ -237,6 +237,21 @@ function setUserEvents(socket, user){
     tile.owner = user.color;
     var city = createCity(data.x, data.y, user);
     tile.city = city;
+    getResult('SELECT fn_build_city(?,?,?) AS error_code;',[user.username,data.x, data.y], function(err, results){
+    	switch(results[0].error_code){
+    		case 0:
+    			//success
+    			break;
+    		case 1:
+    			//not enough resources
+    			break;
+    		case 2:
+    			//city already exists
+    			break;
+    		default:
+    			//server error
+    	}
+    });
   });
   /*************END USER EVENTS*********************/
 
