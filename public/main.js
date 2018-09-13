@@ -17,8 +17,19 @@ var loggedIn = false;
 
 $(document).ready(function(){
 	if(!loggedIn){
-		$('#divLoginMenu').show();
-	};
+		var un = getCookie('username');
+		var pw = getCookie('password');
+		if(un !== '' && pw !== ''){
+			$('#txtUsername').val(un);
+			$('#txtPassword').val(pw);
+			$('#chkRememberMe').prop('checked', true);
+			socket.emit('login', {username:un, password:pw});
+			$('#spanLoginError').text('');
+			$('#btnLogin').prop("disabled",true);
+		}else{
+			$('#divLoginMenu').show();
+		}
+	}
 
 	canvas = document.getElementById("canvasMain");
 	resizeCanvas();
@@ -28,6 +39,11 @@ $(document).ready(function(){
 		socket.emit('login', {username:$('#txtUsername').val(), password:$('#txtPassword').val()});
 		$('#spanLoginError').text('');
 		$('#btnLogin').prop("disabled",true);
+		if($('#chkRememberMe').is(':checked')){
+			//obviously not secure... fix later
+			setCookie('username', $('#txtUsername').val(), 100);
+			setCookie('password', $('#txtPassword').val(), 100);
+		}
 	});
 
 	$('#btnRegister').on('click', function(){
@@ -116,7 +132,7 @@ $(document).ready(function(){
 		$('#txtChatMessage').val('');
 		//Send the new chat message to the server
 		socket.emit('chatMessage', {text:chatMessage});
-		writeChatMessage('me',chatMessage);
+		writeChatMessage(me.username,chatMessage);
 	});
 
 	/**********END BUTTON CLICK EVENTS***************/
@@ -223,7 +239,7 @@ $(document).ready(function(){
 	});
 
 	socket.on('globalMessage', function(data){
-		writeChatMessage('you', data.text)
+		writeChatMessage(data.sentBy, data.text)
 	});
 
 });
@@ -277,6 +293,36 @@ function hexToRgb(hex) {
 }
 
 function writeChatMessage(sender, chatMessage){
-	//add this message to our chat log. We will not get confirmation from the server about this message
-	$('#divChatLog').append('<div class="chat-div"><span class="sender-span">' + sender + ': ' + '</span><span class="message-span">' + chatMessage + '</span></div>');
+	var time = new Date();
+
+	if(sender !== me.username){
+		$('#divChatLog').append('<div class="chat-div"><span class="other-span">' + sender + '<' + time.getHours() + ":" + time.getMinutes() + ":" + time.getSeconds() + '>: ' + '</span><span class="message-span">' + chatMessage + '</span></div>');
+	}else{
+		$('#divChatLog').append('<div class="chat-div"><span class="sender-span">' + sender + '<span class="time-span"><' + time.getHours() + ":" + time.getMinutes() + ":" + time.getSeconds() + '></span>: ' + '</span><span class="message-span">' + chatMessage + '</span></div>');
+	}
+	document.getElementById("divChatContainer").scrollTop = document.getElementById("divChatContainer").scrollHeight;
+}
+
+//https://www.w3schools.com/js/js_cookies.asp
+function getCookie(cname) {
+    var name = cname + "=";
+    var decodedCookie = decodeURIComponent(document.cookie);
+    var ca = decodedCookie.split(';');
+    for(var i = 0; i <ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == ' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0) {
+            return c.substring(name.length, c.length);
+        }
+    }
+    return "";
+}
+
+function setCookie(cname, cvalue, exdays) {
+    var d = new Date();
+    d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+    var expires = "expires="+d.toUTCString();
+    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
 }

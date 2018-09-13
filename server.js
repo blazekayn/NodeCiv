@@ -3,6 +3,9 @@ var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var mysql = require('mysql');
+//Other Code Modules I made
+require('./server_modules/chatserver.js');
+
 var pool = mysql.createPool({
   connectionLimit: 100,
   host: "localhost",
@@ -54,8 +57,9 @@ app.get('/', function(req, res){
   res.sendFile(__dirname + '/public/main.html');
 });
 
-http.listen(3000, '0.0.0.0', function(){
-	console.log('listening on *:3000');
+var port = process.env.PORT || 3000;
+http.listen(port, function(){
+	console.log('listening on :' + port);
 });
 
 //Tile Stuff
@@ -112,6 +116,7 @@ io.on('connection', function(socket){
         socket.emit('loginSuccess');
         //Create an object to keep track of the new user
         var user = createUser();
+        user.username = data.username
         users.push(user);
         socketUsers.push({socket: socket, user:user});
         //Tell the new user what their color and stuff is
@@ -124,7 +129,7 @@ io.on('connection', function(socket){
         socket.emit('existingUsers', users);
 
         //Setup user events
-        setUserEvents(socket);
+        setUserEvents(socket, user);
         return;
       }else{
         //login failed
@@ -162,12 +167,23 @@ io.on('connection', function(socket){
 setInterval(gameLoop,1000);
 
 function gameLoop(){
+  getResult('CALL sp_game_loop()',null,function(){});
   for(var i = 0; i < users.length; i++){
-    users[i].gold += users[i].goldRate;
-    users[i].wood += users[i].woodRate;
-    users[i].food += users[i].foodRate;
-    users[i].population += users[i].popRate;
-    users[i].happy = Math.min(users[i].happy + users[i].happyRate, 100); //limit happy at 100
+    // users[i].gold += users[i].goldRate;
+    // users[i].wood += users[i].woodRate;
+    // users[i].food += users[i].foodRate;
+    // users[i].population += users[i].popRate;
+    // users[i].happy = Math.min(users[i].happy + users[i].happyRate, 100); //limit happy at 100
+    getResult('SELECT gold, wood, food, population, happiness FROM tbl_user WHERE username IN (?);', [users[i].username], function(err, results){
+    	if(err){
+    		return;
+    	}
+    	console.log(results);
+    	console.log(results[0]);
+    	console.log(results[0].gold);
+    	var temp = results[0];
+    	return temp;
+    });
     var uSocket = getSocketByUser(users[i]);
     if(uSocket){
       uSocket.emit('gameUpdate', {user:users[i], map:getTileArea(users[i].currentX,users[i].currentY)});
@@ -179,7 +195,7 @@ function gameLoop(){
 
 
 /******************HELPER FUNCTION*********************/
-function setUserEvents(socket){
+function setUserEvents(socket, user){
    /************USER EVENTS**************************/
 
   socket.on('canvasClick', function(data){
@@ -235,7 +251,7 @@ function setUserEvents(socket){
           return;
         }
         //send to everyone who is not the sender because the sender all has a local copy handled by the client code
-        socket.broadcast.emit('globalMessage', {text:data.text, sentBy:'username', time:(new Date()).getTime()});
+        socket.broadcast.emit('globalMessage', {text:data.text, sentBy:user.username, time:(new Date()).getTime()});
       });
     }
   });
