@@ -88,25 +88,26 @@ HT.Hexagon.prototype.draw = function(ctx) {
 	}
 	ctx.closePath();
 	ctx.fill();
-	if(this.owner){
-		ctx.stroke();
-		if(this.owner !== me.color){
-			var rgb = hexToRgb(this.owner);
-			ctx.fillStyle = 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',.5)';
-			ctx.beginPath();
-			ctx.moveTo(this.Points[0].X, this.Points[0].Y);
-			for(var i = 1; i < this.Points.length; i++)
-			{
-				var p = this.Points[i];
-				ctx.lineTo(p.X, p.Y);
-			}
-			ctx.closePath();
-			ctx.fill();
-		}
-	}
+	//TODO REPLACE THIS COLOR LOGIC TO LOOK AT CURRENT OWNER/ALLIANCE/WAR STATUS
+	// if(this.owner){
+	// 	ctx.stroke();
+	// 	if(this.owner !== me.color){
+	// 		var rgb = hexToRgb(this.owner);
+	// 		ctx.fillStyle = 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',.5)';
+	// 		ctx.beginPath();
+	// 		ctx.moveTo(this.Points[0].X, this.Points[0].Y);
+	// 		for(var i = 1; i < this.Points.length; i++)
+	// 		{
+	// 			var p = this.Points[i];
+	// 			ctx.lineTo(p.X, p.Y);
+	// 		}
+	// 		ctx.closePath();
+	// 		ctx.fill();
+	// 	}
+	// }
 	
 	if(this.city){
-		ctx.fillStyle = this.city.color;
+		ctx.fillStyle = 'black';//this.city.color;
 		ctx.fillRect(this.MidPoint.X-5, this.MidPoint.Y-5, 10, 10);
 	}
 

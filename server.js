@@ -63,13 +63,15 @@ http.listen(port, function(){
 });
 
 //Tile Stuff
+var tick = 0;
+var debug = true;
 var gridSizeX = 10; //Size of the visible map area
 var gridSizeY = 7; //Size of the visible map area
 var mapSizeX = 250; //size of total map
 var mapSizeY = 250; //size of the total map
 var currentX = 0; //The top left x we are visitng
 var currentY = 0; //the top left y we are visitng
-var colors = ['#7FFF00', '#DC143C', '#00FFFF', '#8B008B', '#191970', '#FF4500'];
+//var colors = ['#7FFF00', '#DC143C', '#00FFFF', '#8B008B', '#191970', '#FF4500'];
 var users = [];
 var socketUsers = [];
 var tiles = [];
@@ -77,6 +79,7 @@ var cities = [];
 for (var x = 0; x < mapSizeX; x++){
   for(var y = 0; y < mapSizeY; y++){
     tiles.push(createTile(x,y));
+    
     // pool.getConnection(function (err, connection){
     //   if(err){
     //     return callback(err, null);
@@ -124,7 +127,7 @@ io.on('connection', function(socket){
 
         //Tell all the current users there is a new user to keep track of
         socket.broadcast.emit('newUser', user);
-        console.log('New user color ' + user.color);
+        console.log('New user color ' + user.username);
         //Tell the new user what users are already in the game
         socket.emit('existingUsers', users);
 
@@ -167,11 +170,11 @@ io.on('connection', function(socket){
 setInterval(gameLoop,6000); //10 tick a minute
 
 function gameLoop(){
-  getResult('CALL sp_game_loop()',null,function(){});
-  for(var i = 0; i < users.length; i++){
-    updateUser(users[i]);
-  }
-
+	console.log('Game Loop :  ' + tick++);
+  	getResult('CALL sp_game_loop()',null,function(){});
+  	for(var i = 0; i < users.length; i++){
+		updateUser(users[i]);
+	}
 }
 
 function updateUser(user){
@@ -184,7 +187,6 @@ function updateUser(user){
     	user.food = results[0].food;
     	user.population =  results[0].population;
     	user.happy = results[0].happiness;
-    	console.log('sending to user ' + user.username);
 	    var uSocket = getSocketByUser(user);
 	    if(uSocket){
 	      uSocket.emit('gameUpdate', {user:user, map:getTileArea(user.currentX,user.currentY)});
@@ -200,13 +202,13 @@ function setUserEvents(socket, user){
 
   socket.on('canvasClick', function(data){
     var tile = getTile(data.x, data.y);
-    tile.selected = !tile.selected;
-    if(tile.selected){
-      tile.owner = user.color;
-      console.log('clicked owner ' + user.color);
-    }else{
-      tile.owner = null;
-    }
+    // tile.selected = !tile.selected;
+    // if(tile.selected){
+   tile.owner = user.color;
+   console.log('clicked owner ' + user.username);
+    // }else{
+    //tile.owner = null;
+    // }
     //io.emit('userClick', getTileArea(0,0));
     for(var i = 0; i < users.length; i++){
       if(users[i].currentX <= data.x && //user can see the changed tile
@@ -219,7 +221,7 @@ function setUserEvents(socket, user){
     }
 
     socket.emit('clickedTile', tile);
-    console.log('user ' + user.color + ' ' + (tile.selected ? '' : 'de') + 'selected tile (' + data.x + ',' + data.y + ')');
+    //console.log('user ' + user.color + ' ' + (tile.selected ? '' : 'de') + 'selected tile (' + data.x + ',' + data.y + ')');
   });
 
   socket.on('moveView', function(data){
@@ -233,25 +235,15 @@ function setUserEvents(socket, user){
   });
 
   socket.on('buildCity', function(data){
-    var tile = getTile(data.x,data.y);
-    tile.owner = user.color;
-    var city = createCity(data.x, data.y, user);
-    tile.city = city;
-    getResult('SELECT fn_build_city(?,?,?) AS error_code;',[user.username,data.x, data.y], function(err, results){
-    	switch(results[0].error_code){
-    		case 0:
-    			//success
-    			break;
-    		case 1:
-    			//not enough resources
-    			break;
-    		case 2:
-    			//city already exists
-    			break;
-    		default:
-    			//server error
-    	}
-    });
+  	console.log('received build city: ' + data.x + ', ' + data.y);
+	var tile = getTile(data.x,data.y);
+	console.log(tile.x + ', ' + tile.y);
+	console.log(tile);
+	console.log(!!tile);
+	if(tile){
+		createCity(tile, user);
+	}
+	console.log(tile);
   });
   /*************END USER EVENTS*********************/
 
@@ -311,7 +303,7 @@ function getTileArea(x,y){
 //create a new user
 function createUser(){
   var user = {};
-  user.color = colors[users.length%6];
+  //user.color = colors[users.length%6];
   user.id = users.length;
   user.gridSizeX = gridSizeX; //Size of the visible map area
   user.gridSizeY = gridSizeY; //Size of the visible map area
@@ -338,7 +330,7 @@ function createTile(x,y){
   tile.x = x;
   tile.y = y;
   tile.tileType = createTileType();
-  tile.selected = false;
+  //tile.selected = false;
   tile.color = getTileColorFromType(tile.tileType); //will be replaced with texture name sometime
   tile.owner = null;
   tile.city = null;
@@ -382,14 +374,36 @@ function getTileColorFromType(tileType){
   }
 }
 
-function createCity(x,y, user){
-  var city = {}
-  city.x = x;
-  city.y = y;
-  city.userId = user.id;
-  city.color = user.color;
-  console.log(user.color + ' created a city at (' + x + ',' + y + ')');
-  return city;
+function createCity(tile, user){
+	console.log('building city');
+	getResult('SELECT fn_build_city(?,?,?) AS error_code;',[user.username,tile.x, tile.y], function(err, results){
+		console.log('fn_build_city ran: ' + results + '---' +  results[0].error_code);
+		switch(results[0].error_code){
+		case 0:
+			//success
+		  	console.log(user.username + ' created a city at (' + x + ',' + y + ')');
+			var city = {};
+			city.x = x;
+			city.y = y;
+			city.user = user.username;
+
+			console.log(city);
+			tile.city = city;
+			tile.owner = user;
+			break;
+		case 1:
+			//not enough resources
+			console.log(user.username + ' not enough resouces to build a city at (' + x + ',' + y + ')');
+			break;
+		case 2:
+			//city already exists
+			console.log(user.username + ' city already exists at (' + x + ',' + y + ')');
+			break;
+		default:
+			//server error
+			console.log(user.username + ' server error when building a city at (' + x + ',' + y + ')');
+		}
+	});
 }
 
 /**

@@ -215,9 +215,14 @@ $(document).ready(function(){
 	});
 
 	socket.on('clickedTile', function(data){
-		$('#divActionsMenu').show(); //TODO
+		$('#divActionsMenu').show();
 		$('#spanActionsMenuClickedTile').text('{' + data.x + ', ' + data.y + '} Type: ' + data.tileType);
 		selectedTile = data;
+		if(selectedTile.city){
+			$('#btnPlaceCity').hide();
+		}else{
+			$('#btnPlaceCity').show();
+		}
 	});
 
 	socket.on('newView', function(data){
@@ -272,7 +277,7 @@ function getMouseClick(event)
 
 	var clickedHex = grid.GetHexAt(new HT.Point(x, y));
 	if(clickedHex){
-		clickedHex.selected = !clickedHex.selected;
+		//clickedHex.selected = !clickedHex.selected;
 		drawHexGrid();
 		socket.emit('canvasClick', {x:clickedHex.Id.col, y:clickedHex.Id.row});
 
