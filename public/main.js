@@ -12,7 +12,7 @@ var mapSizeX = 0;  //size of total map
 var mapSizeY = 0;  //size of the total map
 var currentX = 0;  //The top left x we are visitng
 var currentY = 0;  //the top left y we are visitng
-var selectedTile = {};
+var selectedTile = {}; //Last tile clicked. This should probably be reset to null when you close the action menu
 var loggedIn = false;
 
 $(document).ready(function(){
@@ -155,10 +155,10 @@ $(document).ready(function(){
 		currentX  = me.currentX; //The top left x we are visitng
 		currentY  = me.currentY;
 
-		$('#spanGold').text('Gold: ' + me.gold);
-		$('#spanWood').text('Wood: ' + me.wood);
-		$('#spanFood').text('Food: ' + me.food);
-		$('#spanPopulation').text('Population: ' + me.population);
+		$('#spanGold').text('Gold: ' + me.gold.toLocaleString());
+		$('#spanWood').text('Wood: ' + me.wood.toLocaleString());
+		$('#spanFood').text('Food: ' + me.food.toLocaleString());
+		$('#spanPopulation').text('Population: ' + me.population.toLocaleString());
 		$('#spanHappy').text('Happiness: ' + me.happy + '/100');
 
       	grid = new HT.Grid(gridSizeX,gridSizeY, currentX, currentY, map);
@@ -169,11 +169,20 @@ $(document).ready(function(){
 	socket.on('gameUpdate', function(data){
 		me = data.user;
 		map = data.map; //TODO : right now updating the map causes race issue
+		
+		//Update Resources Section of User Menu
 		$('#spanGold').text('Gold: ' + me.gold);
 		$('#spanWood').text('Wood: ' + me.wood);
 		$('#spanFood').text('Food: ' + me.food);
 		$('#spanPopulation').text('Population: ' + me.population);
 		$('#spanHappy').text('Happiness: ' + me.happy + '/100');
+
+		//Update Cities Section of User Menu
+		var html = '';
+    	for(var i = 0; i < me.cities.length; i++){
+    		html += '<div class="user-menu-city"><span onClick="openCityPopup(' + me.cities[i].x + ', ' + me.cities[i].y + ')">' + me.cities[i].displayName + ' (' + me.cities[i].x + ',' + me.cities[i].y + ')</span></div>';
+    	}
+    	$('#divUserCities').html(html);
 
 
 		grid = new HT.Grid(gridSizeX,gridSizeY, currentX, currentY, map);
@@ -276,6 +285,10 @@ $(document).ready(function(){
 $(window).resize(function(){
 	resizeCanvas();
 });
+
+function openCityPopup(x, y){
+	alert(x + ', ' + y);
+}
 
 function resizeCanvas(){
     canvas.width = 1100;//document.body.clientWidth; //document.width is obsolete
