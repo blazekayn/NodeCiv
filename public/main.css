@@ -75,11 +75,12 @@ body{
 #divChatContainer{
 	position: absolute;
 	bottom: 0px;
-	width: 100%;
 	height: 250px;
 	background-color: black;
 	overflow-y: scroll;
 	margin-bottom: 23px;
+	margin-right:250px;
+	width:750px;
 }
 #divChatMessage{
 	position: fixed;
@@ -92,6 +93,16 @@ body{
 }
 #btnSendMessage{
 	
+}
+#divCanvasHolder{
+	overflow: hidden;
+	display: inline-block;
+}
+#divUserMenu{
+	background-color:goldenrod;
+	width:250px;
+	height:100%;
+	float:right;
 }
 .chat-div{
 	width:100%;

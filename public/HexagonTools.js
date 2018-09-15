@@ -76,7 +76,7 @@ HT.Hexagon = function(id, x, y, mapTile) {
 HT.Hexagon.prototype.draw = function(ctx) {
 
 	ctx.fillStyle = this.color;
-	ctx.strokeStyle = (this.owner?this.owner:'#FFFFFF');
+	ctx.strokeStyle = '#FFFFFF';
 	ctx.lineWidth = 3;
 
 	ctx.beginPath();
@@ -107,7 +107,11 @@ HT.Hexagon.prototype.draw = function(ctx) {
 	// }
 	
 	if(this.city){
-		ctx.fillStyle = 'black';//this.city.color;
+		if(this.city.user === me.username){
+			ctx.fillStyle = 'gold';
+		}else{
+			ctx.fillStyle = 'black';
+		}
 		ctx.fillRect(this.MidPoint.X-5, this.MidPoint.Y-5, 10, 10);
 	}
 

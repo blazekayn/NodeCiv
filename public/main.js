@@ -135,6 +135,12 @@ $(document).ready(function(){
 		writeChatMessage(me.username,chatMessage);
 	});
 
+	$('#txtChatMessage').keyup(function(event){
+		if(event.which === 13){
+			$('#btnSendMessage').trigger('click');
+		}
+	});
+
 	/**********END BUTTON CLICK EVENTS***************/
 	canvas.addEventListener("mousedown", getMouseClick, false);
 
@@ -216,6 +222,12 @@ $(document).ready(function(){
 
 	socket.on('clickedTile', function(data){
 		$('#divActionsMenu').show();
+		// $(document).on('keyup',function(event){
+		// 	if(event.keyCode === 27){//escape key
+		// 		$('#divActionsMenu').hide();
+		// 	}
+		// });
+		$('#spanActionMenuErrorMessage').text('');
 		$('#spanActionsMenuClickedTile').text('{' + data.x + ', ' + data.y + '} Type: ' + data.tileType);
 		selectedTile = data;
 		if(selectedTile.city){
@@ -243,6 +255,18 @@ $(document).ready(function(){
 		drawHexGrid();
 	});
 
+	socket.on('cityBuilt', function(data){
+		var message = data.message;
+		if(message === 'success'){
+			$('#divActionsMenu').hide();
+			map = data.map;
+			grid = new HT.Grid(gridSizeX,gridSizeY,currentX,currentY,map);
+			drawHexGrid();
+		}else{
+			$('#spanActionMenuErrorMessage').text(message);
+		}
+	});
+
 	socket.on('globalMessage', function(data){
 		writeChatMessage(data.sentBy, data.text)
 	});
@@ -254,8 +278,8 @@ $(window).resize(function(){
 });
 
 function resizeCanvas(){
-    canvas.width = document.body.clientWidth; //document.width is obsolete
-    canvas.height = document.body.clientHeight; //document.height is obsolete
+    canvas.width = 1100;//document.body.clientWidth; //document.width is obsolete
+    canvas.height = 600;//document.body.clientHeight; //document.height is obsolete
     canvasW = canvas.width;
     canvasH = canvas.height;
     drawHexGrid();

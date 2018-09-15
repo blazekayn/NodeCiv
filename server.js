@@ -78,28 +78,7 @@ var tiles = [];
 var cities = [];
 // for (var x = 0; x < mapSizeX; x++){
 //   for(var y = 0; y < mapSizeY; y++){
-	getResult('SELECT ' +
-					'tmt.x_coord, ' +
-	    			'tmt.y_coord, ' +
-	    			'LOWER(map_tile_type_id) AS tiletype, ' +
-	    			'tu.username AS city_owner ' +
-				'FROM tbl_map_tile tmt ' +
-				'LEFT JOIN tbl_city tc ON tmt.x_coord = tc.x_coord AND tmt.y_coord = tc.y_coord ' +
-				'LEFT JOIN tbl_user tu ON tc.owner_id = tu.user_id;', [], function(err, results){
-		//console.log(results);
-		for(var i = 0; i < results.length; i++){
-    		var tile = createTile(results[i].x_coord, results[i].y_coord, results[i].tiletype);
-    		if(results[i].city_owner){
-    			tile.owner = results[i].city_owner;
-    			var city = {};
-				city.x = results[i].x_coord;
-				city.y = results[i].y_coord;
-				city.user = results[i].city_owner;
-				tile.city = city;
-    		}
-    		tiles.push(tile);
-		}
-    });
+loadMapFromDB();
 
     //Add logic to run this if no tiles come back from the db for first time setup
     // getResult('INSERT INTO tbl_map_tile(x_coord, y_coord, map_tile_type_id) VALUES(?,?,UPPER(?));', [x, y, getTile(x,y).tileType], function(err, results){
@@ -130,7 +109,7 @@ io.on('connection', function(socket){
 
   /**************USER LOGIN*************************/
   socket.on('login', function(data){
-    getResult('SELECT active, user_id FROM tbl_user WHERE username=? AND password=?',[data.username, data.password], function(err, results){
+    getResult('SELECT active, user_id, gold, wood, food, population, happiness FROM tbl_user WHERE username=? AND password=?',[data.username, data.password], function(err, results){
       if(err){ 
         socket.emit('loginFailed'); //error occured
         return;
@@ -144,6 +123,11 @@ io.on('connection', function(socket){
         //Create an object to keep track of the new user
         var user = createUser();
         user.username = data.username
+        user.gold = results[0].gold;
+        user.wood = results[0].wood;
+        user.food = results[0].food;
+        user.population = results[0].population;
+    	user.happy = results[0].happiness;
         users.push(user);
         socketUsers.push({socket: socket, user:user});
         //Tell the new user what their color and stuff is
@@ -199,6 +183,36 @@ function gameLoop(){
   	for(var i = 0; i < users.length; i++){
 		updateUser(users[i]);
 	}
+	if(tick % 5 === 0){//every 5th tick reload map from DB
+		console.log('Pull Map From DB');
+		loadMapFromDB();
+	}
+}
+
+function loadMapFromDB(){
+	tiles = [];
+	getResult('SELECT ' +
+					'tmt.x_coord, ' +
+	    			'tmt.y_coord, ' +
+	    			'LOWER(map_tile_type_id) AS tiletype, ' +
+	    			'tu.username AS city_owner ' +
+				'FROM tbl_map_tile tmt ' +
+				'LEFT JOIN tbl_city tc ON tmt.x_coord = tc.x_coord AND tmt.y_coord = tc.y_coord ' +
+				'LEFT JOIN tbl_user tu ON tc.owner_id = tu.user_id;', [], function(err, results){
+		//console.log(results);
+		for(var i = 0; i < results.length; i++){
+    		var tile = createTile(results[i].x_coord, results[i].y_coord, results[i].tiletype);
+    		if(results[i].city_owner){
+    			tile.owner = results[i].city_owner;
+    			var city = {};
+				city.x = results[i].x_coord;
+				city.y = results[i].y_coord;
+				city.user = results[i].city_owner;
+				tile.city = city;
+    		}
+    		tiles.push(tile);
+		}
+    });
 }
 
 function updateUser(user){
@@ -264,10 +278,14 @@ function setUserEvents(socket, user){
 	console.log(tile.x + ', ' + tile.y);
 	console.log(tile);
 	console.log(!!tile);
-	if(tile){
-		createCity(tile, user);
-	}
-	console.log(tile);
+
+	createCity(tile, user, function(message){
+		var returnData = {};
+		returnData.map = getTileArea(user.currentX,user.currentY);
+		returnData.message = message;
+		socket.emit('cityBuilt', returnData);
+	});
+
   });
   /*************END USER EVENTS*********************/
 
@@ -403,35 +421,40 @@ function getTileColorFromType(tileType){
 /* FUNCTION USED FOR BUILDING A NEW CITY CALLED   */
 /* WHEN A USER CLICKS THE "PLACE CITY" BUTTON 	  */
 /**************************************************/
-function createCity(tile, user){
+function createCity(tile, user, callback){
 	console.log('building city');
 	getResult('SELECT fn_build_city(?,?,?) AS error_code;',[user.username,tile.x, tile.y], function(err, results){
-		console.log('fn_build_city ran: ' + results + '---' +  results[0].error_code);
+		var message = "";
 		switch(results[0].error_code){
 		case 0:
 			//success
-		  	console.log(user.username + ' created a city at (' + x + ',' + y + ')');
+		  	console.log(user.username + ' created a city at (' + tile.x + ',' + tile.y + ')');
 			var city = {};
-			city.x = x;
-			city.y = y;
+			city.x = tile.x;
+			city.y = tile.y;
 			city.user = user.username;
 
 			console.log(city);
 			tile.city = city;
 			tile.owner = user;
+			callback('success');
 			break;
 		case 1:
 			//not enough resources
-			console.log(user.username + ' not enough resouces to build a city at (' + x + ',' + y + ')');
+			console.log(user.username + ' not enough resouces to build a city at (' + tile.x + ',' + tile.y + ')');
+			callback('Not enough resources');
 			break;
 		case 2:
 			//city already exists
-			console.log(user.username + ' city already exists at (' + x + ',' + y + ')');
+			console.log(user.username + ' city already exists at (' + tile.x + ',' + tile.y + ')');
+			callback('A city is already built here.');
 			break;
 		default:
 			//server error
-			console.log(user.username + ' server error when building a city at (' + x + ',' + y + ')');
+			console.log(user.username + ' server error when building a city at (' + tile.x + ',' + tile.y + ')');
+			callback('Oops Sever Error');
 		}
+		return message;
 	});
 }
 
