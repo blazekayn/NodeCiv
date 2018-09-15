@@ -119,7 +119,7 @@ HT.Hexagon.prototype.draw = function(ctx) {
 		ctx.textAlign = "center";
 		ctx.textBaseline = 'middle';
 		//var textWidth = ctx.measureText(this.Planet.BoundingHex.Id);
-		ctx.fillText(this.Id.row + ', ' + this.Id.col, this.MidPoint.X, this.MidPoint.Y + 25);
+		ctx.fillText(this.Id.col + ', ' + this.Id.row, this.MidPoint.X, this.MidPoint.Y + 25);
 	}
 	
 };

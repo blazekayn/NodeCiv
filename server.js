@@ -76,10 +76,34 @@ var users = [];
 var socketUsers = [];
 var tiles = [];
 var cities = [];
-for (var x = 0; x < mapSizeX; x++){
-  for(var y = 0; y < mapSizeY; y++){
-    tiles.push(createTile(x,y));
-    
+// for (var x = 0; x < mapSizeX; x++){
+//   for(var y = 0; y < mapSizeY; y++){
+	getResult('SELECT ' +
+					'tmt.x_coord, ' +
+	    			'tmt.y_coord, ' +
+	    			'LOWER(map_tile_type_id) AS tiletype, ' +
+	    			'tu.username AS city_owner ' +
+				'FROM tbl_map_tile tmt ' +
+				'LEFT JOIN tbl_city tc ON tmt.x_coord = tc.x_coord AND tmt.y_coord = tc.y_coord ' +
+				'LEFT JOIN tbl_user tu ON tc.owner_id = tu.user_id;', [], function(err, results){
+		//console.log(results);
+		for(var i = 0; i < results.length; i++){
+    		var tile = createTile(results[i].x_coord, results[i].y_coord, results[i].tiletype);
+    		if(results[i].city_owner){
+    			tile.owner = results[i].city_owner;
+    			var city = {};
+				city.x = results[i].x_coord;
+				city.y = results[i].y_coord;
+				city.user = results[i].city_owner;
+				tile.city = city;
+    		}
+    		tiles.push(tile);
+		}
+    });
+
+    //Add logic to run this if no tiles come back from the db for first time setup
+    // getResult('INSERT INTO tbl_map_tile(x_coord, y_coord, map_tile_type_id) VALUES(?,?,UPPER(?));', [x, y, getTile(x,y).tileType], function(err, results){
+    // });
     // pool.getConnection(function (err, connection){
     //   if(err){
     //     return callback(err, null);
@@ -95,8 +119,8 @@ for (var x = 0; x < mapSizeX; x++){
     //     return callback(true, "No Connection");
     //   }
     // });
-  }
-}
+//   }
+// }
 
 io.on('connection', function(socket){
   /*************NEW USER CONNECTED*********************/
@@ -325,11 +349,12 @@ function createUser(){
 }
 
 //Creates Tiles
-function createTile(x,y){
+function createTile(x,y,tileType){
   var tile = {}
   tile.x = x;
   tile.y = y;
-  tile.tileType = createTileType();
+  tile.tileType = tileType
+  //tile.tileType = createTileType();
   //tile.selected = false;
   tile.color = getTileColorFromType(tile.tileType); //will be replaced with texture name sometime
   tile.owner = null;
@@ -374,6 +399,10 @@ function getTileColorFromType(tileType){
   }
 }
 
+/**************************************************/
+/* FUNCTION USED FOR BUILDING A NEW CITY CALLED   */
+/* WHEN A USER CLICKS THE "PLACE CITY" BUTTON 	  */
+/**************************************************/
 function createCity(tile, user){
 	console.log('building city');
 	getResult('SELECT fn_build_city(?,?,?) AS error_code;',[user.username,tile.x, tile.y], function(err, results){
