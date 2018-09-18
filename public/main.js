@@ -123,6 +123,10 @@ $(document).ready(function(){
 		$('#divActionsMenu').hide();
 	});
 
+	$('#spanCityPopupClose').on('click', function(){
+		$('#divCityPopup').hide();
+	});
+
 	$('#btnPlaceCity').on('click', function(){
 		socket.emit('buildCity', selectedTile);
 	});
@@ -287,7 +291,18 @@ $(window).resize(function(){
 });
 
 function openCityPopup(x, y){
-	alert(x + ', ' + y);
+	$('#divCityPopup').show();
+	var city = getCityByCoords(x, y);
+	$('#spanCityPopupTitle').text(city.displayName + ' (' + city.x + ',' + city.y + ')');
+}
+
+function getCityByCoords(x, y){
+	for(var i = 0; i < me.cities.length; i++){
+		if(me.cities[i].x === x && me.cities[i].y === y){
+			return me.cities[i];
+		}
+	}
+	return null;
 }
 
 function resizeCanvas(){
