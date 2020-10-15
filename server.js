@@ -219,43 +219,30 @@ function updateUser(user){
 	getResult('CALL sp_get_user_data(?);', [user.username], function(err, results){
     	if(err){
     		return;
-    	}
-    	user.gold = results[0].gold;
-    	user.wood = results[0].wood;
-    	user.food = results[0].food;
-    	user.population =  results[0].population;
-    	user.happy = results[0].happiness;
+      }
+      var resultArray = Object.values(JSON.parse(JSON.stringify(results)));
+      var userResult = resultArray[0][0];
+    	user.gold = userResult.gold;
+    	user.wood = userResult.wood;
+    	user.food = userResult.food;
+    	user.population =  userResult.population;
+      user.happy = userResult.happiness;
+
     	var cities = [];
-    	for(var i = 0; i < results[1].length; i++){
+    	for(var i = 0; i < resultArray[1].length; i++){
     		var city = {};
-			city.x = results[1][i].x_coord;
-			city.y = results[1][i].y_coord;
+			city.x = resultArray[1][i].x_coord;
+			city.y = resultArray[1][i].y_coord;
 			city.user = user.username;
-			city.displayName = results[1][i].display_name;
+			city.displayName = resultArray[1][i].display_name;
 			cities.push(city);
     	}
     	user.cities = cities;
-
 	    var uSocket = getSocketByUser(user);
 	    if(uSocket){
 	      uSocket.emit('gameUpdate', {user:user, map:getTileArea(user.currentX,user.currentY)});
 	    }
     });
-
-	// getResult('SELECT gold, wood, food, population, happiness FROM tbl_user WHERE username = ?;', [user.username], function(err, results){
- //    	if(err){
- //    		return;
- //    	}
- //    	user.gold = results[0].gold;
- //    	user.wood = results[0].wood;
- //    	user.food = results[0].food;
- //    	user.population =  results[0].population;
- //    	user.happy = results[0].happiness;
-	//     var uSocket = getSocketByUser(user);
-	//     if(uSocket){
-	//       uSocket.emit('gameUpdate', {user:user, map:getTileArea(user.currentX,user.currentY)});
-	//     }
- //    });
 }
 /**************************/
 
