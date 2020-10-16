@@ -42,6 +42,20 @@
 			<div class="modal-content">
 				<span id="spanCityPopupClose" class="close">&times;</span>
 				<span id="spanCityPopupTitle"></span>
+				<div id="divCityTroops"></div>
+				<button type="button" id="btnLaunchAttack">Launch Attack</button>
+			</div>
+		</div>
+		<div id="divAttackPopup" class="modal">
+			<div class="modal-content">
+				<span id="spanAttackPopupClose" class="close">&times;</span>
+				<span id="spanAttackPopupTitle">Launch Attack</span><br/>
+				Attack X: <input type="text" id="txtAttackX" onchange="updateTicksUntilAttack();"/><br/>
+				Attack Y: <input type="text" id="txtAttackY" onchange="updateTicksUntilAttack();"/><br/>
+				Number of Warriors: <input type="number" min="0" id="txtAttackWarriors" onchange="updateCostToSend();" />/<span id="spanWarriorCount"></span><br/>
+				Cost to Send: <span id="spanCostToSend"></span><br/>
+				Ticks until Attack: <span id="spanTicksUntilAttack"></span><br/>
+				<button type="button" id="btnSendAttack">Attack!</button>
 			</div>
 		</div>
 		<div id="divLoginMenu" class="modal">
@@ -54,11 +68,20 @@
 				<span id="spanLoginError"></span>
 			</div>
 		</div>
+		<div id="divCreateAlliancePopup" class="modal">
+			<div class="modal-content">
+				<span id="spanCreateAlliancePopupClose" class="close">&times;</span>
+				Name: <input type="text" id="txtAllianceName"/><br/>
+				<button type="button" id="btnConfirmAlliance">Confirm</button>
+				<span id="spanCreateAllianceError"></span>
+			</div>
+		</div>
 		<div style="width:100%;">
 			<div id="divCanvasHolder">
 				<canvas id="canvasMain"></canvas>
 			</div>
 			<div id="divUserMenu">
+				<progress id="progTick" value="0" max="60"></progress>
 				<span class="user-menu-title">Resources</span>
 				<div id="divResources">
 					<span id="spanGold"></span><br/>
@@ -70,6 +93,11 @@
 				<span class="user-menu-title">Cities</span>
 				<div id="divUserCities">
 					
+				</div>
+				<span class="user-menu-title">Alliance</span>
+				<div id="divAlliance">
+					<button id="btnCreateAlliance">Create Alliance</button>
+					<span id="spanAllianceName" class="hidden"></span>
 				</div>
 			</div>
 		</div>

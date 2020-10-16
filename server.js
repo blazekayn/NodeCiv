@@ -182,11 +182,13 @@ function gameLoop(){
   	getResult('CALL sp_game_loop()',null,function(){});
   	for(var i = 0; i < users.length; i++){
 		updateUser(users[i]);
-	}
-	if(tick % 5 === 0){//every 5th tick reload map from DB
-		console.log('Pull Map From DB');
-		loadMapFromDB();
-	}
+  }
+  // Lets try running without this. I think its just for added security
+  // but the map we have in memory should be correct.
+	// if(tick % 5 === 0){//every 5th tick reload map from DB
+	// 	console.log('Pull Map From DB');
+	// 	loadMapFromDB();
+	// }
 }
 
 function loadMapFromDB(){
@@ -234,7 +236,8 @@ function updateUser(user){
 			city.x = resultArray[1][i].x_coord;
 			city.y = resultArray[1][i].y_coord;
 			city.user = user.username;
-			city.displayName = resultArray[1][i].display_name;
+      city.displayName = resultArray[1][i].display_name;
+      city.warrior = resultArray[1][i].warrior;
 			cities.push(city);
     	}
     	user.cities = cities;
@@ -287,19 +290,39 @@ function setUserEvents(socket, user){
 
   socket.on('buildCity', function(data){
   	console.log('received build city: ' + data.x + ', ' + data.y);
-	var tile = getTile(data.x,data.y);
-	console.log(tile.x + ', ' + tile.y);
-	console.log(tile);
-	console.log(!!tile);
+    var tile = getTile(data.x,data.y);
+    console.log(tile.x + ', ' + tile.y);
+    console.log(tile);
+    console.log(!!tile);
 
-	createCity(tile, user, function(message){
-		var returnData = {};
-		returnData.map = getTileArea(user.currentX,user.currentY);
-		returnData.message = message;
-		socket.emit('cityBuilt', returnData);
-	});
+    createCity(tile, user, function(message){
+      var returnData = {};
+      returnData.map = getTileArea(user.currentX,user.currentY);
+      returnData.message = message;
+      socket.emit('cityBuilt', returnData);
+    });
 
   });
+
+  socket.on('sendAttack', function(data){
+  	
+    sendAttack(attack, user, function(message){
+      var returnData = {};
+      returnData.map = getTileArea(user.currentX,user.currentY);
+      returnData.message = message;
+      socket.emit('cityBuilt', returnData);
+    });
+
+  });
+
+  socket.on('createAlliance', function(data){
+    console.log('received create alliance: ' + data.name);
+
+    createAlliance(data.name, user, function(message){
+      socket.emit('allianceCreated',message);
+    });
+  });
+
   /*************END USER EVENTS*********************/
 
   /***************CHAT EVENTS**********************/
@@ -470,6 +493,80 @@ function createCity(tile, user, callback){
 		return message;
 	});
 }
+
+/****************************************************/
+/* FUNCTION USED FOR CREATING A NEW ALLIANCE        */
+/* WHEN A USER CLICKS THE "CREATE ALLIANCE" BUTTON 	*/
+/****************************************************/
+function createAlliance(name, user, callback){
+  console.log("Creating Alliance");
+  getResult('SELECT fn_create_alliance(?,?) AS error_code;',[user.username,name], function(err, results){
+    var message = "";
+    console.log(JSON.stringify(results));
+    switch(results[0].error_code){
+    case 0:
+      //success
+      console.log('Alliance ' + name + ' created by ' + user.username);
+      callback('success');
+      break;
+    case 1:
+      //User is in an alliance
+      console.log('You are already in an alliance.');
+      callback('You are already in an alliance.');
+      break;
+    case 2:
+      //Alliance name taken
+      console.log('An alliance with that name already exists.');
+      callback('An alliance with that name already exists.');
+      break;
+    default:
+      //server error
+      console.log('Server error when trying to create alliance.');
+      callback('Oops Sever Error');
+    }
+    return message;
+  });
+}
+
+/**************************************************/
+/* FUNCTION USED FOR ATTACKING ANOTHER PLAYER CITY*/
+/* WHEN A USER CLICKS THE "ATTACK" BUTTON 	      */
+/**************************************************/
+function sendAttack(attack, user, callback){
+  var ticks = 0;
+  var a = attack.fromX - attack.toX;
+  var b = attack.fromY - attack.toY;
+  ticks = Math.ceil(Math.sqrt( a*a + b*b ));
+  getResult('SELECT fn_send_attack(?,?,?,?,?,?,?) AS error_code;',
+    [user.username, attack.fromX, attack.fromY, attack.toX, attack.toY, attack.warriors, ticks], 
+    function(err, results){
+      var message = "";
+      switch(results[0].error_code){
+      case 0:
+        //success
+        console.log(user.username + ' sent an attack to (' + attack.toX + ',' + attack.toY + ')');
+        callback('success');
+        break;
+      case 1:
+        //not enough resources
+        console.log(user.username + ' not enough resouces to build a city at (' + tile.x + ',' + tile.y + ')');
+        callback('Not enough resources');
+        break;
+      case 2:
+        //city already exists
+        console.log(user.username + ' city already exists at (' + tile.x + ',' + tile.y + ')');
+        callback('A city is already built here.');
+        break;
+      default:
+        //server error
+        console.log(user.username + ' server error when building a city at (' + tile.x + ',' + tile.y + ')');
+        callback('Oops Sever Error');
+      }
+      return message;
+    }
+  );
+}
+
 
 /**
  * Returns a distance between two hexes

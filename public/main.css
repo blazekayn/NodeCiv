@@ -172,3 +172,7 @@ https://www.w3schools.com/howto/howto_css_modals.asp
     text-decoration: none;
     cursor: pointer;
 }
+
+.hidden{
+	display:none;
+}
