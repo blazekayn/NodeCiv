@@ -183,12 +183,36 @@ $(document).ready(function(){
 		}
 	});
 
+	$('#spanCreateAlliancePopupClose').on('click', function(){
+		$('#divCreateAlliancePopup').close();
+	});
+
+	$('#spanAllianceName').on('click', function(){
+		//Prep popup data
+		socket.emit('loadAlliance');
+		//Show popup
+		$('#divAlliancePopup').show();
+	});
+
+	$('#spanAlliancePopupClose').on('click', function(){
+		$('#divAlliancePopup').hide();
+	});
+
+	$('#btnSendInvite').on('click', function(){
+		if($('#txtInviteToAlliance').val().length > 3){
+			socket.emit('createAllianceInvite', {name:$('#txtInviteToAlliance').val()})
+		}else{
+			$('#spanCreateAllianceInviteError').text("Name not long enough.");
+		}
+	});
+
 	/**********END BUTTON CLICK EVENTS***************/
 	canvas.addEventListener("mousedown", getMouseClick, false);
 
 	//Sent when connected to the server this is your user data
 	socket.on('userInfo', function(data){
 		me = data.user;
+		console.log("UserInfo user: ", me);
 		map = data.map;
 		gridSizeX = me.gridSizeX; //Size of the visible map area
 		gridSizeY = me.gridSizeY; //Size of the visible map area
@@ -204,10 +228,10 @@ $(document).ready(function(){
 		$('#spanHappy').text('Happiness: ' + me.happy + '/100');
 
 		//Set Alliance Stuff up if they have an alliance
-		if(me.alliance_name){
+		if(me.alliance){
 			$('#btnCreateAlliance').addClass('hidden');
 			$('#spanAllianceName').removeClass('hidden');
-			$('#spanAllianceName').text(me.alliance_name);
+			$('#spanAllianceName').text(me.alliance);
 		}
 
       	grid = new HT.Grid(gridSizeX,gridSizeY, currentX, currentY, map);
@@ -217,6 +241,7 @@ $(document).ready(function(){
 	//runs 1/sec
 	socket.on('gameUpdate', function(data){
 		me = data.user;
+		console.log("GameUpdate user: ", me);
 		map = data.map; //TODO : right now updating the map causes race issue
 		
 		//Update Resources Section of User Menu
@@ -233,6 +258,14 @@ $(document).ready(function(){
     	}
     	$('#divUserCities').html(html);
 
+		//Update Alliance Invites
+		html = '<tr>' + 
+			'<th>Alliance Name</th><th>Accept</th>' +
+		'</tr>';
+		for(var i = 0; i < me.invites.length; i++){
+			html += '<tr><td>' + me.invites[i].alliance + '</td><td><button type="button" onClick="acceptAllianceInvite(' + me.invites[i].alliance + ')">Accept</button></td></tr>'
+		}
+		$('#tblPendingAllianceInvites').html(html);
 
 		grid = new HT.Grid(gridSizeX,gridSizeY, currentX, currentY, map);
 		drawHexGrid();
@@ -342,6 +375,26 @@ $(document).ready(function(){
 		}
 	});
 
+	socket.on('allianceLoaded', function(data){
+		for(var i = 0; i < data.users.length; i++){
+			$('#tblAllianceMembers tr:last').after('<tr><td>' + data.users[i].username + '</td><td>' + data.users[i].rank + '</td></tr>');
+		}
+		for(var i = 0; i < data.users.length; i++){
+			$('#tblAllianceInvites tr:last').after('<tr><td>' + data.invitedUsers[i].username + '</td></tr>');
+		}
+		$('#spanViewAllianceName').text(data.alliance_name);
+		$('#spanAllianceLeader').text(data.alliance_leader);
+	});
+
+	socket.on('allianceInviteCreated', function(message){
+		if(message == 'success'){
+			$('#spanCreateAllianceInviteError').text('User invited.');
+			$('#tblAllianceInvites tr:last').after('<tr><td>' + $('#txtInviteToAlliance').val() + '</td></tr>');
+			$('#txtInviteToAlliance').val('');
+		}else{
+			$('#spanCreateAllianceInviteError').text('message');
+		}
+	});
 });
 
 $(window).resize(function(){

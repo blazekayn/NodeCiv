@@ -76,6 +76,38 @@
 				<span id="spanCreateAllianceError"></span>
 			</div>
 		</div>
+		<div id="divAlliancePopup" class="modal">
+			<div class="modal-content">
+				<span id="spanAlliancePopupClose" class="close">&times;</span>
+				Name: <span id="spanViewAllianceName"></span><br/>
+				Leader: <span id="spanAllianceLeader"></span><br/>
+				Members:<br/>
+				<table id="tblAllianceMembers">
+					<tr>
+						<th>
+							Username
+						</th>
+						<th>
+							Rank
+						</th>
+					</tr>
+				</table>
+				<br/>
+				Invite Player:<input type="text" id="txtInviteToAlliance"/><button type="button" id="btnSendInvite">Invite</button><br/>
+				<span id="spanCreateAllianceInviteError"></span><br/>
+				Pending Invites:
+				<table id="tblAllianceInvites">
+					<tr>
+						<th>
+							Username
+						</th>
+						<th>
+							Rank
+						</th>
+					</tr>
+				</table>
+			</div>
+		</div>
 		<div style="width:100%;">
 			<div id="divCanvasHolder">
 				<canvas id="canvasMain"></canvas>
@@ -97,6 +129,9 @@
 				<span class="user-menu-title">Alliance</span>
 				<div id="divAlliance">
 					<button id="btnCreateAlliance">Create Alliance</button>
+					Pending Invites:
+					<table id="tblPendingAllianceInvites">
+					</table>
 					<span id="spanAllianceName" class="hidden"></span>
 				</div>
 			</div>

@@ -109,7 +109,9 @@ io.on('connection', function(socket){
 
   /**************USER LOGIN*************************/
   socket.on('login', function(data){
-    getResult('SELECT active, user_id, gold, wood, food, population, happiness FROM tbl_user WHERE username=? AND password=?',[data.username, data.password], function(err, results){
+    getResult('SELECT active, tu.user_id, gold, wood, food, population, happiness, alliance_name ' +
+        'FROM tbl_user tu LEFT JOIN xref_alliance_user xau ON tu.user_id = xau.user_id LEFT JOIN tbl_alliance ta ON xau.alliance_id = ta.alliance_id ' + 
+        'WHERE username=? AND password=?',[data.username, data.password], function(err, results){
       if(err){ 
         socket.emit('loginFailed'); //error occured
         return;
@@ -127,7 +129,8 @@ io.on('connection', function(socket){
         user.wood = results[0].wood;
         user.food = results[0].food;
         user.population = results[0].population;
-    	user.happy = results[0].happiness;
+        user.happy = results[0].happiness;
+        user.alliance = results[0].alliance_name;
         users.push(user);
         socketUsers.push({socket: socket, user:user});
         //Tell the new user what their color and stuff is
@@ -179,7 +182,7 @@ setInterval(gameLoop,6000); //10 tick a minute
 
 function gameLoop(){
 	console.log('Game Loop :  ' + tick++);
-  	getResult('CALL sp_game_loop()',null,function(){});
+  	getResult('CALL sp_game_loop();',null,function(){});
   	for(var i = 0; i < users.length; i++){
 		updateUser(users[i]);
   }
@@ -229,6 +232,7 @@ function updateUser(user){
     	user.food = userResult.food;
     	user.population =  userResult.population;
       user.happy = userResult.happiness;
+      user.alliance = userResult.alliance_name;
 
     	var cities = [];
     	for(var i = 0; i < resultArray[1].length; i++){
@@ -240,7 +244,18 @@ function updateUser(user){
       city.warrior = resultArray[1][i].warrior;
 			cities.push(city);
     	}
-    	user.cities = cities;
+      user.cities = cities;
+      
+      if(resultArray.length > 2){
+        var invites = [];
+        for(var i = 0; i < resultArray[2].length; i++){
+          var invite = {};
+          invite.alliance = resultArray[2][i].alliance_name;
+          invites.push(invite);
+        }
+        user.invites = invites;
+      }
+
 	    var uSocket = getSocketByUser(user);
 	    if(uSocket){
 	      uSocket.emit('gameUpdate', {user:user, map:getTileArea(user.currentX,user.currentY)});
@@ -322,6 +337,20 @@ function setUserEvents(socket, user){
       socket.emit('allianceCreated',message);
     });
   });
+
+  socket.on('createAllianceInvite', function(data){
+    console.log('received create alliance invite: ' + data.name);
+
+    createAllianceInvite(data.name, user, function(message){
+      socket.emit('allianceInviteCreated',message);
+    });
+  });
+
+  socket.on('loadAlliance', function(){
+    console.log('loading alliance screen');
+
+    loadAlliance(user);
+  })
 
   /*************END USER EVENTS*********************/
 
@@ -522,6 +551,83 @@ function createAlliance(name, user, callback){
     default:
       //server error
       console.log('Server error when trying to create alliance.');
+      callback('Oops Sever Error');
+    }
+    return message;
+  });
+}
+
+/************************************************************/
+/* FUNCTION USED FOR LOADING DATA TO POPULATE ALLIANCE MENU */
+/* WHEN A USER OPENS THE ALLIANCE MENU                    	*/
+/************************************************************/
+function loadAlliance(user){
+  console.log("Loading Alliance");
+  getResult('CALL sp_get_alliance_data(?);',[user.username], function(err, results){
+    if(err){
+      return;
+    }
+    var resultArray = Object.values(JSON.parse(JSON.stringify(results)));
+    var data = {};
+    var allianceUsers = [];
+    for(var i = 0; i < resultArray[0].length; i++){
+      var allianceUser = {};
+      allianceUser.username = resultArray[0][i].username;
+      allianceUser.rank = resultArray[0][i].rank;
+      allianceUsers.push(allianceUser);
+    }
+    data.users = allianceUsers;
+    
+    var dataResult = resultArray[1][0];
+    console.log(JSON.stringify(dataResult));
+    data.alliance_name = dataResult.alliance_name;
+    data.alliance_leader = dataResult.username;
+
+    //Check for length because sometimes there are no active invites
+    if(resultArray.length > 2){
+      var invitedUsers = [];
+      for(var i = 0; i < resultArray[2].length; i++){
+        var invitedUsers = {};
+        invitedUser.username = resultArray[2][i].username;
+        invitedUsers.push(invitedUser);
+      }
+      data.invitedUsers = invitedUsers;
+    }
+
+    var uSocket = getSocketByUser(user);
+    if(uSocket){
+      uSocket.emit('allianceLoaded', data);
+    }
+  });
+}
+
+/****************************************************/
+/* FUNCTION USED FOR CREATING AN ALLIANCE INVITE    */
+/* WHEN A USER CLICKS THE "INVITE" BUTTON 	        */
+/****************************************************/
+function createAllianceInvite(name, user, callback){
+  console.log("Creating Alliance Invite");
+  getResult('SELECT fn_create_alliance_invite(?,?) AS error_code;',[user.username,name], function(err, results){
+    var message = "";
+    console.log(JSON.stringify(results));
+    switch(results[0].error_code){
+    case 0:
+      //success
+      callback('success');
+      break;
+    case 1:
+      //Not high enough rank to invite
+      console.log('You do not have permission to invite.');
+      callback('You do not have permission to invite.');
+      break;
+    case 2:
+      //Already invited
+      console.log('This user has already been invited to the alliance.');
+      callback('This user has already been invited to the alliance.');
+      break;
+    default:
+      //server error
+      console.log('Server error when trying to create alliance invite.');
       callback('Oops Sever Error');
     }
     return message;
