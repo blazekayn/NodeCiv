@@ -105,7 +105,9 @@
 							Rank
 						</th>
 					</tr>
-				</table>
+				</table><br/>
+				<button id="btnLeaveAlliance" type="button">Leave Alliance</button>
+				<span id="spanLeaveAllianceError"></span><br/>
 			</div>
 		</div>
 		<div style="width:100%;">
@@ -129,7 +131,7 @@
 				<span class="user-menu-title">Alliance</span>
 				<div id="divAlliance">
 					<button id="btnCreateAlliance">Create Alliance</button>
-					Pending Invites:
+					<span id="spanPendingInvitesLabel">Pending Invites:</span>
 					<table id="tblPendingAllianceInvites">
 					</table>
 					<span id="spanAllianceName" class="hidden"></span>
@@ -137,11 +139,21 @@
 			</div>
 		</div>
 		<div id="divChatContainer">
-			<div id="divChatLog">
+			<div id="divGlobalChatLog">
+			</div>
+			<div id="divAllianceChatLog" class="hidden">
 			</div>
 			<div id="divChatMessage">
 				<input type="text" id="txtChatMessage" maxlength="255" />
 				<button type="button" id="btnSendMessage">Send</button>
+				<select id="selChatChannel">
+					<option value="global" selected>
+						Global
+					</option>
+					<option value="alliance">
+						Alliance
+					</option>
+				</select>
 			</div>
 		</div>
 	</body>

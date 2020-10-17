@@ -1,3 +1,4 @@
+const e = require('express');
 var express = require('express');
 var app = express();
 var http = require('http').Server(app);
@@ -109,32 +110,39 @@ io.on('connection', function(socket){
 
   /**************USER LOGIN*************************/
   socket.on('login', function(data){
-    getResult('SELECT active, tu.user_id, gold, wood, food, population, happiness, alliance_name ' +
-        'FROM tbl_user tu LEFT JOIN xref_alliance_user xau ON tu.user_id = xau.user_id LEFT JOIN tbl_alliance ta ON xau.alliance_id = ta.alliance_id ' + 
-        'WHERE username=? AND password=?',[data.username, data.password], function(err, results){
+    console.log("login request: " ,data.username, data.password);
+    getResult('SELECT username, active FROM tbl_user WHERE username=? AND password=?',[data.username, data.password], function(err, results){
       if(err){ 
+        console.log("login failed: error");
         socket.emit('loginFailed'); //error occured
         return;
       }
       if(!results || results.length === 0){
+        console.log("login failed: bad password", JSON.stringify(results));
         socket.emit('loginFailed'); //user not found
         return;
       }
+      console.log("login successful: ", JSON.stringify(results));
       if(results[0].active === 1){
+        console.log("login successful: ", JSON.stringify(results));
         socket.emit('loginSuccess');
         //Create an object to keep track of the new user
         var user = createUser();
         user.username = data.username
-        user.gold = results[0].gold;
-        user.wood = results[0].wood;
-        user.food = results[0].food;
-        user.population = results[0].population;
-        user.happy = results[0].happiness;
-        user.alliance = results[0].alliance_name;
+        
         users.push(user);
         socketUsers.push({socket: socket, user:user});
+        updateUser(user); //get userdata
         //Tell the new user what their color and stuff is
-        socket.emit('userInfo', {user:user, map:getTileArea(0,0)});
+        var sendData = {};
+        sendData.map = getTileArea(0,0)
+        sendData.gridSizeX = gridSizeX; //Size of the visible map area
+        sendData.gridSizeY = gridSizeY; //Size of the visible map area
+        sendData.mapSizeX  = mapSizeX; //size of total map
+        sendData.mapSizeY  = mapSizeY; //size of the total map
+        sendData.currentX  = currentX; //The top left x we are visitng
+        sendData.currentY  = currentY;
+        socket.emit('gameInfo', sendData);
 
         //Tell all the current users there is a new user to keep track of
         socket.broadcast.emit('newUser', user);
@@ -147,6 +155,7 @@ io.on('connection', function(socket){
         return;
       }else{
         //login failed
+        console.log('login failed: no results returned');
         socket.emit('loginFailed'); //user not active
         return;
       }
@@ -350,7 +359,21 @@ function setUserEvents(socket, user){
     console.log('loading alliance screen');
 
     loadAlliance(user);
-  })
+  });
+
+  socket.on('acceptAllianceInvite', function(allianceName){
+    console.log(user.username + ' accepted alliance invite: ' + allianceName);
+
+    acceptAllianceInvite(allianceName, user, function(message){
+      socket.emit('allianceInviteCreated',message);
+    });
+  });
+
+  socket.on('leaveAlliance', function(){
+    leaveAlliance(user, function(message){
+      socket.emit('leaveAlliance',message);
+    });
+  });
 
   /*************END USER EVENTS*********************/
 
@@ -364,8 +387,18 @@ function setUserEvents(socket, user){
         if(err){
           return;
         }
-        //send to everyone who is not the sender because the sender all has a local copy handled by the client code
-        socket.broadcast.emit('globalMessage', {text:data.text, sentBy:user.username, time:(new Date()).getTime()});
+        if(data.channel == "global"){
+          //send to everyone who is not the sender because the sender all has a local copy handled by the client code
+          socket.broadcast.emit('globalMessage', {text:data.text, sentBy:user.username, time:(new Date()).getTime()});
+        }else if(data.channel == "alliance"){
+          //send chat to this person's alliance members
+          for(var i = 0; i < socketUsers.length; i++){
+            //The alliance names match and its not the sending user then send it to everyone
+            if(socketUsers[i].user.alliance == user.alliance && socketUsers[i].user.username !== user.username){
+              socketUsers[i].socket.emit('allianceMessage', {text:data.text, sentBy:user.username, time:(new Date()).getTime()});
+            }
+          }
+        }
       });
     }
   });
@@ -624,6 +657,77 @@ function createAllianceInvite(name, user, callback){
       //Already invited
       console.log('This user has already been invited to the alliance.');
       callback('This user has already been invited to the alliance.');
+      break;
+    default:
+      //server error
+      console.log('Server error when trying to create alliance invite.');
+      callback('Oops Sever Error');
+    }
+    return message;
+  });
+}
+
+/****************************************************/
+/* FUNCTION USED FOR ACCEPTING AN ALLIANCE INVITE   */
+/* WHEN A USER CLICKS THE "INVITE" BUTTON 	        */
+/****************************************************/
+function acceptAllianceInvite(name, user, callback){
+  console.log("Accepting Alliance Invite");
+  getResult('SELECT fn_accept_alliance_invite(?,?) AS error_code;',[user.username,name], function(err, results){
+    var message = "";
+    console.log(JSON.stringify(results));
+    switch(results[0].error_code){
+    case 0:
+      //success
+      callback('success');
+      break;
+    case 1:
+      //Not high enough rank to invite
+      console.log('You are already in an alliance.');
+      callback('You are already in an alliance.');
+      break;
+    case 2:
+      //Already invited
+      console.log('You are not invited to this alliance.');
+      callback('You are not invited to this alliance.');
+      break;
+    case 3:
+      //Already invited
+      console.log('The alliance is already full.');
+      callback('The alliance is already full.');
+      break;
+    default:
+      //server error
+      console.log('Server error when trying to create alliance invite.');
+      callback('Oops Sever Error');
+    }
+    return message;
+  });
+}
+
+/****************************************************/
+/* FUNCTION USED FOR ACCEPTING AN ALLIANCE INVITE   */
+/* WHEN A USER CLICKS THE "INVITE" BUTTON 	        */
+/****************************************************/
+function leaveAlliance(user, callback){
+  console.log("Leave alliance");
+  getResult('SELECT fn_leave_alliance(?) AS error_code;',[user.username], function(err, results){
+    var message = "";
+    console.log(JSON.stringify(results));
+    switch(results[0].error_code){
+    case 0:
+      //success
+      callback('success');
+      break;
+    case 1:
+      //Not in alliance
+      console.log('You are not in an alliance.');
+      callback('You are not in an alliance.');
+      break;
+    case 2:
+      //Leader cant leave
+      console.log('Pass leader to someone else to leave alliance.');
+      callback('Pass leader to someone else to leave alliance.');
       break;
     default:
       //server error

@@ -6,10 +6,10 @@ var users = [];    		//List of all connected users
 var me = {};       		//The current user's data
 var map = [];      		//The currently loaded map tiles. The size of the grid atm
 var grid = {}; 	   		//The grid used to display the map
-var gridSizeX = 0; 		//Size of the visible map area
-var gridSizeY = 0; 		//Size of the visible map area
-var mapSizeX = 0;  		//size of total map
-var mapSizeY = 0;  		//size of the total map
+var gridSizeX = 10; 	//Size of the visible map area --must match size on server
+var gridSizeY = 7; 		//Size of the visible map area --must match size on server
+var mapSizeX = 250; 	//size of total map --must match size on server
+var mapSizeY = 250; 	//size of the total map --must match size on server
 var currentX = 0;  		//The top left x we are visitng
 var currentY = 0;  		//the top left y we are visitng
 var selectedTile = {}; 	//Last tile clicked. This should probably be reset to null when you close the action menu
@@ -139,9 +139,14 @@ $(document).ready(function(){
 	$('#btnSendMessage').on('click', function(){
 		var chatMessage = $('#txtChatMessage').val();
 		$('#txtChatMessage').val('');
+		var channel = $('#selChatChannel').val();
+		if(channel == "alliance" && !(me.alliance)){
+			alert("Not in an alliance");
+			return;
+		}
 		//Send the new chat message to the server
-		socket.emit('chatMessage', {text:chatMessage});
-		writeChatMessage(me.username,chatMessage);
+		socket.emit('chatMessage', {text:chatMessage, channel:channel});
+		writeChatMessage(me.username,chatMessage, channel);
 	});
 
 	$('#txtChatMessage').keyup(function(event){
@@ -206,33 +211,35 @@ $(document).ready(function(){
 		}
 	});
 
+	$('#btnLeaveAlliance').on('click', function(){
+		var sure = confirm('Are you sure?');
+		if(sure){
+			socket.emit('leaveAlliance');
+		}
+	});
+
+	$('#selChatChannel').on('change', function() {
+		if(this.value == "global"){
+			$('#divGlobalChatLog').removeClass('hidden');
+			$('#divAllianceChatLog').addClass('hidden');
+		}else if(this.value == "alliance"){
+			$('#divGlobalChatLog').addClass('hidden');
+			$('#divAllianceChatLog').removeClass('hidden');
+		}
+	});
+
 	/**********END BUTTON CLICK EVENTS***************/
 	canvas.addEventListener("mousedown", getMouseClick, false);
 
 	//Sent when connected to the server this is your user data
-	socket.on('userInfo', function(data){
-		me = data.user;
-		console.log("UserInfo user: ", me);
+	socket.on('gameInfo', function(data){
 		map = data.map;
-		gridSizeX = me.gridSizeX; //Size of the visible map area
-		gridSizeY = me.gridSizeY; //Size of the visible map area
-		mapSizeX  = me.mapSizeX; //size of total map
-		mapSizeY  = me.mapSizeY; //size of the total map
-		currentX  = me.currentX; //The top left x we are visitng
-		currentY  = me.currentY;
-
-		$('#spanGold').text('Gold: ' + me.gold.toLocaleString());
-		$('#spanWood').text('Wood: ' + me.wood.toLocaleString());
-		$('#spanFood').text('Food: ' + me.food.toLocaleString());
-		$('#spanPopulation').text('Population: ' + me.population.toLocaleString());
-		$('#spanHappy').text('Happiness: ' + me.happy + '/100');
-
-		//Set Alliance Stuff up if they have an alliance
-		if(me.alliance){
-			$('#btnCreateAlliance').addClass('hidden');
-			$('#spanAllianceName').removeClass('hidden');
-			$('#spanAllianceName').text(me.alliance);
-		}
+		gridSizeX = data.gridSizeX; //Size of the visible map area
+		gridSizeY = data.gridSizeY; //Size of the visible map area
+		mapSizeX  = data.mapSizeX; //size of total map
+		mapSizeY  = data.mapSizeY; //size of the total map
+		currentX  = data.currentX; //The top left x we are visitng
+		currentY  = data.currentY;
 
       	grid = new HT.Grid(gridSizeX,gridSizeY, currentX, currentY, map);
       	drawHexGrid();
@@ -258,15 +265,24 @@ $(document).ready(function(){
     	}
     	$('#divUserCities').html(html);
 
-		//Update Alliance Invites
-		html = '<tr>' + 
-			'<th>Alliance Name</th><th>Accept</th>' +
-		'</tr>';
-		for(var i = 0; i < me.invites.length; i++){
-			html += '<tr><td>' + me.invites[i].alliance + '</td><td><button type="button" onClick="acceptAllianceInvite(' + me.invites[i].alliance + ')">Accept</button></td></tr>'
+		if(me.alliance){
+			$('#btnCreateAlliance').addClass('hidden');
+			$('#spanPendingInvitesLabel').addClass('hidden');
+			$('#spanAllianceName').removeClass('hidden');
+			$('#spanAllianceName').text(me.alliance);
+			$('#tblPendingAllianceInvites').addClass('hidden');
+		}else{
+			$('#tblPendingAllianceInvites').removeClass('hidden');
+			$('#spanPendingInvitesLabel').removeClass('hidden');
+			//Update Alliance Invites
+			html = '<tr>' + 
+				'<th>Alliance Name</th><th>Accept</th>' +
+			'</tr>';
+			for(var i = 0; i < me.invites.length; i++){
+				html += '<tr><td>' + me.invites[i].alliance + '</td><td><button type="button" onclick=\'acceptAllianceInvite("' + me.invites[i].alliance + '")\'>Accept</button></td></tr>'
+			}
+			$('#tblPendingAllianceInvites').html(html);
 		}
-		$('#tblPendingAllianceInvites').html(html);
-
 		grid = new HT.Grid(gridSizeX,gridSizeY, currentX, currentY, map);
 		drawHexGrid();
 		
@@ -362,7 +378,11 @@ $(document).ready(function(){
 	});
 
 	socket.on('globalMessage', function(data){
-		writeChatMessage(data.sentBy, data.text)
+		writeChatMessage(data.sentBy, data.text, "global");
+	});
+
+	socket.on('allianceMessage', function(data){
+		writeChatMessage(data.sentBy, data.text, "alliance");
 	});
 
 	//TODO: Show error messages or update menus to show alliances.
@@ -395,13 +415,23 @@ $(document).ready(function(){
 			$('#spanCreateAllianceInviteError').text('message');
 		}
 	});
+
+	socket.on('leaveAlliance', function(message){
+		if(message == 'success'){
+			$('#divAlliancePopup').hide();
+		}else{
+			$('#spanLeaveAllianceError').text(message);
+		}
+	});
 });
 
 $(window).resize(function(){
 	resizeCanvas();
 });
 
-
+/****************************************/
+/*             UI FUNCTIONS             */
+/****************************************/
 function updateCostToSend(){
 	$('#spanCostToSend').html("<br/>" + (parseInt($('#txtAttackWarriors').val()) * 4) + " food<br/>" + parseInt($('#txtAttackWarriors').val()) + " gold");
 }
@@ -425,6 +455,10 @@ function openCityPopup(x, y){
 	$('#divCityTroops').html(
 		"<span>Warriors: " + city.warrior + "</span>"
 	);
+}
+
+function acceptAllianceInvite(allianceName){
+	socket.emit('acceptAllianceInvite', allianceName.trim());
 }
 
 function getCityByCoords(x, y){
@@ -480,13 +514,19 @@ function hexToRgb(hex) {
     } : null;
 }
 
-function writeChatMessage(sender, chatMessage){
+function writeChatMessage(sender, chatMessage, channel){
 	var time = new Date();
 
+	var divName = "";
+	if(channel == "global"){
+		divName = "#divGlobalChatLog";
+	}else if(channel == "alliance"){
+		divName = "#divAllianceChatLog";
+	}
 	if(sender !== me.username){
-		$('#divChatLog').append('<div class="chat-div"><span class="other-span">' + sender + '<' + time.getHours() + ":" + time.getMinutes() + ":" + time.getSeconds() + '>: ' + '</span><span class="message-span">' + chatMessage + '</span></div>');
+		$(divName).append('<div class="chat-div"><span class="other-span">' + sender + '<' + time.getHours() + ":" + time.getMinutes() + ":" + time.getSeconds() + '>: ' + '</span><span class="message-span">' + chatMessage + '</span></div>');
 	}else{
-		$('#divChatLog').append('<div class="chat-div"><span class="sender-span">' + sender + '<span class="time-span"><' + time.getHours() + ":" + time.getMinutes() + ":" + time.getSeconds() + '></span>: ' + '</span><span class="message-span">' + chatMessage + '</span></div>');
+		$(divName).append('<div class="chat-div"><span class="sender-span">' + sender + '<span class="time-span"><' + time.getHours() + ":" + time.getMinutes() + ":" + time.getSeconds() + '></span>: ' + '</span><span class="message-span">' + chatMessage + '</span></div>');
 	}
 	document.getElementById("divChatContainer").scrollTop = document.getElementById("divChatContainer").scrollHeight;
 }
