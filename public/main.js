@@ -252,10 +252,10 @@ $(document).ready(function(){
 		map = data.map; //TODO : right now updating the map causes race issue
 		
 		//Update Resources Section of User Menu
-		$('#spanGold').text('Gold: ' + me.gold);
-		$('#spanWood').text('Wood: ' + me.wood);
-		$('#spanFood').text('Food: ' + me.food);
-		$('#spanPopulation').text('Population: ' + me.population);
+		$('#spanGold').text('Gold: ' + numberWithCommas(me.gold));
+		$('#spanWood').text('Wood: ' + numberWithCommas(me.wood));
+		$('#spanFood').text('Food: ' + numberWithCommas(me.food));
+		$('#spanPopulation').text('Population: ' + numberWithCommas(me.population));
 		$('#spanHappy').text('Happiness: ' + me.happy + '/100');
 
 		//Update Cities Section of User Menu
@@ -423,6 +423,16 @@ $(document).ready(function(){
 			$('#spanLeaveAllianceError').text(message);
 		}
 	});
+
+	socket.on('cityLoaded', function(cityData){
+		var city = getCityByCoords(x, y);
+		selectedCity = city;
+		$('#spanCityPopupTitle').text(city.displayName + ' (' + city.x + ',' + city.y + ')');
+		$('#divCityTroops').html(
+			"<span>Warriors: " + city.warrior + "</span>"
+		);
+		$('#divCityPopup').show();
+	});
 });
 
 $(window).resize(function(){
@@ -448,13 +458,7 @@ function updateTicksUntilAttack(){
 }
 
 function openCityPopup(x, y){
-	$('#divCityPopup').show();
-	var city = getCityByCoords(x, y);
-	selectedCity = city;
-	$('#spanCityPopupTitle').text(city.displayName + ' (' + city.x + ',' + city.y + ')');
-	$('#divCityTroops').html(
-		"<span>Warriors: " + city.warrior + "</span>"
-	);
+	socket.emit('getCityByCoords', {x:x, y:y});
 }
 
 function acceptAllianceInvite(allianceName){
@@ -553,4 +557,9 @@ function setCookie(cname, cvalue, exdays) {
     d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
     var expires = "expires="+d.toUTCString();
     document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+}
+
+//https://stackoverflow.com/questions/2901102/how-to-print-a-number-with-commas-as-thousands-separators-in-javascript
+function numberWithCommas(x) {
+    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }

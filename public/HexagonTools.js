@@ -76,7 +76,7 @@ HT.Hexagon = function(id, x, y, mapTile) {
 HT.Hexagon.prototype.draw = function(ctx) {
 
 	ctx.fillStyle = this.color;
-	ctx.strokeStyle = '#FFFFFF';
+	ctx.strokeStyle = '#000000';
 	ctx.lineWidth = 3;
 
 	ctx.beginPath();
@@ -86,7 +86,14 @@ HT.Hexagon.prototype.draw = function(ctx) {
 		var p = this.Points[i];
 		ctx.lineTo(p.X, p.Y);
 	}
+	if(this.owner == me.username){
+		ctx.color = "#FF0000";
+		ctx.fillStyle = "gray";
+	}else if(this.owner){
+		ctx.fillStyle = "red";
+	}
 	ctx.closePath();
+	ctx.stroke();
 	ctx.fill();
 	//TODO REPLACE THIS COLOR LOGIC TO LOOK AT CURRENT OWNER/ALLIANCE/WAR STATUS
 	// if(this.owner){

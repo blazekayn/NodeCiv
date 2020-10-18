@@ -124,7 +124,6 @@ io.on('connection', function(socket){
       }
       console.log("login successful: ", JSON.stringify(results));
       if(results[0].active === 1){
-        console.log("login successful: ", JSON.stringify(results));
         socket.emit('loginSuccess');
         //Create an object to keep track of the new user
         var user = createUser();
@@ -146,7 +145,6 @@ io.on('connection', function(socket){
 
         //Tell all the current users there is a new user to keep track of
         socket.broadcast.emit('newUser', user);
-        console.log('New user color ' + user.username);
         //Tell the new user what users are already in the game
         socket.emit('existingUsers', users);
 
@@ -173,12 +171,26 @@ io.on('connection', function(socket){
         socket.emit('registerFailed'); //user exists
         return;
       }
-      getResult('INSERT INTO tbl_user(username, password) VALUES(?,?);', [data.username, data.password], function(err, results){
+      getResult('INSERT INTO tbl_user(username, password, wood, food, gold) VALUES(?,?, 1500, 1500, 1500);', [data.username, data.password], function(err, results){
         if(err){
           return; //user not created database error
         }
         console.log('user created: ' + data.username);
         socket.emit('registerSuccess');
+
+        var user = createUser();
+        user.username = data.username
+
+        //Give this user a starting City
+        var tile = getRandomEmptyTile();
+        if(tile && !(tile.owner)){
+          createCity(tile, user, function(message){
+            var returnData = {};
+            returnData.map = getTileArea(user.currentX,user.currentY);
+            returnData.message = message;
+            socket.emit('cityBuilt', returnData);
+          });
+        }
       });
     });
   });
@@ -344,6 +356,9 @@ function setUserEvents(socket, user){
 
     createAlliance(data.name, user, function(message){
       socket.emit('allianceCreated',message);
+      if(message == "success"){
+        user.alliance = data.name;
+      }
     });
   });
 
@@ -366,12 +381,24 @@ function setUserEvents(socket, user){
 
     acceptAllianceInvite(allianceName, user, function(message){
       socket.emit('allianceInviteCreated',message);
+      if(message == "success"){
+        user.alliance = allianceName;
+      }
     });
   });
 
   socket.on('leaveAlliance', function(){
     leaveAlliance(user, function(message){
       socket.emit('leaveAlliance',message);
+      if(message == "success"){
+        user.alliance = null;
+      }
+    });
+  });
+
+  socket.on('getCityByCoords', function(data){
+    getCityData(data, user, function(cityData){
+      socket.emit('cityLoaded',cityData);
     });
   });
 
@@ -775,6 +802,31 @@ function sendAttack(attack, user, callback){
       return message;
     }
   );
+}
+
+function getRandomEmptyTile(){
+  var randX = Math.floor((Math.random() * 250)); //Get a random number 0-249
+  var randY = Math.floor((Math.random() * 250)); //Get a random number 0-249
+  var tile = getTile(randX, randY);
+  var trys = 0;
+  while(tile.owner){
+    if(trys > 250*250){
+      return false;
+    }
+    if(randX < 250){
+      randX++;
+    }else{
+      randX = 0;
+    }
+    if(randY < 250){
+      randY++;
+    }else{
+      randY = 0;
+    }
+    tile = getTile(randX, randY);
+    trys++;
+  }
+  return tile;
 }
 
 
